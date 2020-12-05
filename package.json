@@ -1,0 +1,8 @@
+{
+  "name": "node-social-net",
+  "version": "0.0.1",
+  "description": "Simple node.js social net application",
+  "main": "src/index.ts",
+  "author": "Stepan Fedorov <huanandeluxe@yandex.ru>",
+  "license": "MIT"
+}
