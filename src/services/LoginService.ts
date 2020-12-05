@@ -1,9 +1,13 @@
-import jwt, { JsonWebTokenError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
-import { UserEntity, isUserTag, UserTag } from '../entities/UserEntity';
+import { UserEntity, isUserTag } from '../entities/UserEntity';
+import { IUserRepository } from './UserService';
 
 export class LoginService {
-    constructor(private readonly _privateKey: string) {}
+    constructor(
+        private readonly _userRepository: IUserRepository,
+        private readonly _privateKey: string
+    ) {}
 
     public createSessionToken(user: UserEntity): string {
         const payload = user.tag;
@@ -11,18 +15,19 @@ export class LoginService {
         return token;
     }
 
-    public loginBySessionToken(token: string): UserTag | JsonWebTokenError {
+    public async loginBySessionToken(
+        token: string
+    ): Promise<UserEntity | null | Error> {
         let tokenData: string | object;
         try {
             tokenData = jwt.verify(token, this._privateKey);
         } catch (err) {
-            return err;
+            return new Error('Invalid token structure');
         }
 
-        if (typeof tokenData !== 'string' || !isUserTag(tokenData)) {
-            return new JsonWebTokenError('Invalid token data');
-        } else {
-            return tokenData;
-        }
+        if (typeof tokenData !== 'string' || !isUserTag(tokenData))
+            return new Error('Invalid token data');
+
+        return this._userRepository.findOne(tokenData);
     }
 }
