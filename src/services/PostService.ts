@@ -1,7 +1,9 @@
 import { PostEntity, PostId } from '../entities/PostEntity';
-import { UserEntity } from '../entities/UserEntity';
+import { UserEntity, UserTag } from '../entities/UserEntity';
+import { PostFactory } from './PostFactory';
 
 export interface IPostRepository {
+    getPostsByUser(user: UserTag, limit?: number): Promise<PostEntity[]>;
     findOne(id: PostId): Promise<PostEntity>;
     save(post: PostEntity): Promise<PostEntity>;
     delete(id: PostId): Promise<void>;
@@ -10,14 +12,24 @@ export interface IPostRepository {
 export class PostNotFoundError extends Error {}
 
 export class PostService {
-    constructor(private readonly _postRepository: IPostRepository) {}
+    constructor(
+        private readonly _postRepository: IPostRepository,
+        private readonly _postFactory: PostFactory
+    ) {}
+
+    public getPostsForUser(
+        userTag: UserTag,
+        limit?: number
+    ): Promise<PostEntity[]> {
+        return this._postRepository.getPostsByUser(userTag, limit);
+    }
 
     public async createPost(
         title: string,
         text: string,
         author: UserEntity
     ): Promise<PostEntity> {
-        const post = new PostEntity(title, text, author);
+        const post = this._postFactory.createNewPost(title, text, author);
         return this._postRepository.save(post);
     }
 

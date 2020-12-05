@@ -4,5 +4,9 @@
   "description": "Simple node.js social net application",
   "main": "src/index.ts",
   "author": "Stepan Fedorov <huanandeluxe@yandex.ru>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@types/jsonwebtoken": "^8.5.0",
+    "jsonwebtoken": "^8.5.1"
+  }
 }

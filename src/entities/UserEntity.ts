@@ -19,6 +19,14 @@ export class UserEntity {
         this._tag = tag;
     }
 
+    get passwordHash() {
+        return this._passwordHash;
+    }
+
+    get passwordSalt() {
+        return this._passwordSalt;
+    }
+
     get fullName() {
         return this._fullName;
     }
