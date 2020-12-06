@@ -16,11 +16,12 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "nestjs": "^0.0.1",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^6.6.3"
   },
   "devDependencies": {
-    "ts-node": "^9.1.0",
-    "nodemon": "2.0.0"
+    "nodemon": "2.0.0",
+    "ts-node": "^9.1.0"
   },
   "scripts": {
     "dev": "nodemon src/index.ts",

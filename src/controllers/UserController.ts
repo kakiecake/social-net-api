@@ -1,9 +1,10 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Post, Body, UseInterceptors } from '@nestjs/common';
 import { isUserTag } from '../entities/UserEntity';
 import { UserService } from '../services/UserService';
 import { LoginService } from '../services/LoginService';
+import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
 
+@UseInterceptors(HTTPResponseInterceptor)
 @Controller('/users')
 export class UserController {
     constructor(
@@ -15,59 +16,26 @@ export class UserController {
     public async register(
         @Body('tag') tag: string,
         @Body('fullName') fullName: string,
-        @Body('password') password: string,
-        @Res() res: Response
+        @Body('password') password: string
     ) {
-        if (!isUserTag(tag)) {
-            res.status(400).json({
-                success: false,
-                error: 'Invalid user tag',
-                data: [],
-            });
-            return;
-        }
-
+        if (!isUserTag(tag)) return [400, 'Invalid user tag'];
         const user = await this._userService.registerUser(
             tag,
             fullName,
             password
         );
-
-        if (user instanceof Error) {
-            res.status(400).json({
-                success: false,
-                error: 'Tag is occupied',
-                data: [],
-            });
-            return;
-        }
-
-        res.status(200).json({
-            success: true,
-            data: user,
-        });
-        return;
+        if (user instanceof Error) return [400, 'Tag is occupied'];
+        return [200, user];
     }
 
     @Post('/login')
     public async login(
         @Body('tag') tag: string,
-        @Body('password') password: string,
-        @Res() res: Response
+        @Body('password') password: string
     ) {
         const user = await this._userService.loginUser(tag, password);
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                error: 'User not found',
-                data: null,
-            });
-        } else {
-            const token = this._loginService.createSessionToken(user);
-            res.status(200).json({
-                success: true,
-                data: token,
-            });
-        }
+        if (user === null) return [404, 'User not found'];
+        const token = this._loginService.createSessionToken(user);
+        return [200, token];
     }
 }

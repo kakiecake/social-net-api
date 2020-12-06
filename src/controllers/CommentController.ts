@@ -3,9 +3,9 @@ import {
     Post,
     Body,
     UseGuards,
-    Res,
     Delete,
     Patch,
+    UseInterceptors,
 } from '@nestjs/common';
 import { UserEntity } from '../entities/UserEntity';
 import { User, AuthGuard } from './authUtils';
@@ -15,8 +15,9 @@ import {
     NotAllowedError,
     CommentNotFoundError,
 } from '../services/PostService';
-import { Response } from 'express';
+import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
 
+@UseInterceptors(HTTPResponseInterceptor)
 @Controller('/comments')
 export class CommentController {
     constructor(private readonly _postService: PostService) {}
@@ -26,18 +27,10 @@ export class CommentController {
     public async createComment(
         @Body('text') text: string,
         @Body('postId') postIdParam: string,
-        @User() user: UserEntity,
-        @Res() res: Response
+        @User() user: UserEntity
     ) {
         const postId = Number(postIdParam);
-        if (isNaN(postId)) {
-            res.status(400).json({
-                success: false,
-                error: 'Invalid postId parameter',
-                data: null,
-            });
-            return;
-        }
+        if (isNaN(postId)) return [400, 'Invalid postId parameter'];
 
         const comment = await this._postService.leaveComment(
             text,
@@ -45,47 +38,23 @@ export class CommentController {
             user.tag
         );
 
-        if (comment instanceof PostNotFoundError) {
-            res.status(404).json({
-                success: false,
-                error: 'Post not found',
-                data: null,
-            });
-            return;
-        } else {
-            res.status(200).json({
-                success: true,
-                data: comment,
-            });
-        }
+        if (comment instanceof PostNotFoundError)
+            return [404, 'Post not found'];
+        else return [200, comment];
     }
 
     @UseGuards(AuthGuard)
     @Delete('/')
     public async deleteComment(
-        @Body('id') commentIdParam: string,
-        @User() user: UserEntity,
-        @Res() res: Response
+        @Body('commentId') commentIdParam: string,
+        @User() user: UserEntity
     ) {
         const commentId = Number(commentIdParam);
-        if (isNaN(commentId)) {
-            res.status(400).json({
-                success: false,
-                error: 'Invalid commentId parameter',
-                data: null,
-            });
-            return;
-        }
+        if (isNaN(commentId)) return [400, 'Invalid commentId parameter'];
 
-        if (this._postService.deleteComment(commentId, user) === null) {
-            res.status(200).json({ success: true, data: null });
-        } else {
-            res.status(403).json({
-                success: false,
-                error: 'Not allowed',
-                data: null,
-            });
-        }
+        if ((await this._postService.deleteComment(commentId, user)) === null)
+            return [200, null];
+        else return [403, 'Forbidden'];
     }
 
     @UseGuards(AuthGuard)
@@ -93,38 +62,15 @@ export class CommentController {
     public async editComment(
         @Body('commentId') commentIdParam: string,
         @Body('text') text: string,
-        @User() user: UserEntity,
-        @Res() res: Response
+        @User() user: UserEntity
     ) {
         const commentId = Number(commentIdParam);
-        if (isNaN(commentId)) {
-            res.status(400).json({
-                success: false,
-                error: 'Invalid commentId parameter',
-                data: null,
-            });
-            return;
-        }
+        if (isNaN(commentId)) return [400, 'Invalid commentId parameter'];
 
         const err = this._postService.editComment(text, commentId, user);
-        if (err instanceof NotAllowedError) {
-            res.status(403).json({
-                success: false,
-                error: 'Foridden',
-                data: null,
-            });
-        } else if (err instanceof CommentNotFoundError) {
-            res.status(404).json({
-                success: false,
-                error: 'Comment not found',
-                data: null,
-            });
-            return;
-        } else {
-            res.status(200).json({
-                success: true,
-                data: null,
-            });
-        }
+        if (err instanceof NotAllowedError) return [403, 'Forbidden'];
+        else if (err instanceof CommentNotFoundError)
+            return [404, 'Comment not found'];
+        else return [200, null];
     }
 }

@@ -15,6 +15,8 @@ import { PostFactory } from './services/PostFactory';
 import { CommentFactory } from './services/CommentFactory';
 import { ICommentRepository } from './services/ICommentRepository';
 import { InMemoryCommentRepository } from './repositories/InMemoryCommentRepository';
+import { HTTPResponseInterceptor } from './controllers/HTTPResponseInterceptor';
+import { CommentController } from './controllers/CommentController';
 
 const UserRepositorySymbol = Symbol('UserRepository');
 const PostRepositorySymbol = Symbol('PostRepository');
@@ -22,8 +24,9 @@ const CommentRepositorySymbol = Symbol('CommentRepository');
 const HashingProviderSymbol = Symbol('HashingProvider');
 
 @Module({
-    controllers: [PostController, UserController],
+    controllers: [PostController, UserController, CommentController],
     providers: [
+        HTTPResponseInterceptor,
         AuthGuard,
         PostFactory,
         CommentFactory,
