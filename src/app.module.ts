@@ -23,7 +23,7 @@ const HashingProviderSymbol = Symbol('HashingProvider');
             provide: LoginService,
             inject: [UserRepositorySymbol],
             useFactory: (userRepository: IUserRepository) => {
-                return new LoginService(userRepository, '~privateKey~');
+                return new LoginService(userRepository, '~privateKey~', 60);
             },
         },
         {

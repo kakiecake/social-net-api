@@ -1,6 +1,6 @@
 import { UserEntity } from './UserEntity';
 
-export type PostId = string;
+export type PostId = number;
 
 export class PostEntity {
     constructor(

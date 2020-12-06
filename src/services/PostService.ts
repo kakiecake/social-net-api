@@ -1,5 +1,5 @@
 import { PostEntity, PostId } from '../entities/PostEntity';
-import { UserEntity, UserTag } from '../entities/UserEntity';
+import { UserTag, UserEntity } from '../entities/UserEntity';
 import { PostFactory } from './PostFactory';
 import { PostView } from '../dto/PostView';
 
@@ -11,6 +11,7 @@ export interface IPostRepository {
 }
 
 export class PostNotFoundError extends Error {}
+export class NotAllowedError extends Error {}
 
 export class PostService {
     constructor(
@@ -33,18 +34,22 @@ export class PostService {
         title: string,
         text: string,
         author: UserEntity
-    ): Promise<PostEntity> {
-        const post = this._postFactory.createNewPost(title, text, author);
-        return this._postRepository.save(post);
+    ): Promise<PostView> {
+        const newPost = this._postFactory.createNewPost(title, text, author);
+        const savedPost = await this._postRepository.save(newPost);
+        const postView = this._postFactory.convertPostToDTO(savedPost);
+        return postView;
     }
 
     public async editPost(
         id: PostId,
-        title?: string,
-        text?: string
-    ): Promise<PostEntity | PostNotFoundError> {
+        title: string | undefined,
+        text: string | undefined,
+        author: UserEntity
+    ): Promise<PostEntity | PostNotFoundError | NotAllowedError> {
         const post = await this._postRepository.findOne(id);
         if (post === null) return new PostNotFoundError();
+        if (post.author.tag !== author.tag) return new NotAllowedError();
         if (title) post.changeTitle(title);
         if (text) post.changeText(text);
         return this._postRepository.save(post);

@@ -1,6 +1,5 @@
 import { IUserRepository } from '../services/UserService';
 import { UserEntity, UserTag } from '../entities/UserEntity';
-import { PostId } from '../entities/PostEntity';
 
 export class InMemoryUserRepository implements IUserRepository {
     private _users: Map<UserTag, UserEntity> = new Map();
@@ -13,7 +12,7 @@ export class InMemoryUserRepository implements IUserRepository {
         this._users.set(post.tag, post);
     }
 
-    public async delete(postId: PostId): Promise<void> {
-        this._users.delete(postId);
+    public async delete(tag: UserTag): Promise<void> {
+        this._users.delete(tag);
     }
 }

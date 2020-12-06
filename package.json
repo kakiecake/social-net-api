@@ -17,5 +17,15 @@
     "jsonwebtoken": "^8.5.1",
     "nestjs": "^0.0.1",
     "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "ts-node": "^9.1.0",
+    "nodemon": "2.0.0"
+  },
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "run": "ts-node src/build.ts",
+    "run:compiled": "node build/index.js"
   }
 }

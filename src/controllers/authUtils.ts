@@ -8,7 +8,7 @@ import { LoginService } from '../services/LoginService';
 import { UserEntity } from '../entities/UserEntity';
 
 export const User = createParamDecorator(
-    (ctx: ExecutionContext): UserEntity | null => {
+    (_: unknown, ctx: ExecutionContext): UserEntity | null => {
         return ctx.switchToHttp().getRequest().user || null;
     }
 );
