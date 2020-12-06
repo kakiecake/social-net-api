@@ -1,11 +1,7 @@
 import { UserEntity, UserTag } from '../entities/UserEntity';
 import { UserFactory, IHashingProvider } from './UserFactory';
 import { UserView } from '../dto/UserView';
-
-export interface IUserRepository {
-    findOne(tag: string): Promise<UserEntity | null>;
-    save(user: UserEntity): Promise<void>;
-}
+import { IUserRepository } from './IUserRepository';
 
 export type UserExistsError = Error;
 export type UserNotFoundError = Error;

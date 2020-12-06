@@ -1,4 +1,4 @@
-import { IPostRepository } from '../services/PostService';
+import { IPostRepository } from '../services/IPostRepository';
 import { PostEntity, PostId } from '../entities/PostEntity';
 import { UserTag } from '../entities/UserEntity';
 
@@ -21,6 +21,21 @@ export class InMemoryPostRepository implements IPostRepository {
             this._posts.push(post);
         }
         return post;
+    }
+
+    public async deleteIfAuthorTagIsCorrect(
+        id: PostId,
+        authorTag: UserTag
+    ): Promise<boolean> {
+        const index = this._posts.findIndex(
+            x => x.id === id && x.author.tag === authorTag
+        );
+        if (index === -1) return false;
+        this._posts = [
+            ...this._posts.slice(0, index),
+            ...this._posts.slice(index + 1, this._posts.length),
+        ];
+        return true;
     }
 
     public async delete(id: PostId) {

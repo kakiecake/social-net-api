@@ -18,12 +18,40 @@ import {
 } from '../services/PostService';
 import { ApiResponse } from './ApiResponse';
 import { PostView } from '../dto/PostView';
-import { PostId } from '../entities/PostEntity';
 import { Response } from 'express';
 
 @Controller('/posts')
 export class PostController {
     constructor(private readonly _postService: PostService) {}
+
+    @Get('/:id')
+    public async getPostWithComments(
+        @Param('id') idParam: string,
+        @Res() res: Response
+    ) {
+        let id = Number(idParam);
+        if (isNaN(id)) {
+            res.status(400).json({
+                success: false,
+                error: 'Invalid ID parameter',
+                data: null,
+            });
+            return;
+        }
+        const post = await this._postService.getPostWithComments(id);
+        if (!post) {
+            res.status(404).json({
+                success: false,
+                error: 'Post not found',
+                data: null,
+            });
+        } else {
+            res.status(200).json({
+                success: true,
+                data: post,
+            });
+        }
+    }
 
     @UseGuards(AuthGuard)
     @Get('/')
@@ -98,6 +126,7 @@ export class PostController {
     @Delete('/:id')
     public async deletePost(
         @Param('id') idParam: string,
+        @User() user: UserEntity,
         @Res() res: Response
     ) {
         let id = Number(idParam);
@@ -107,8 +136,16 @@ export class PostController {
                 error: 'Invalid ID parameter',
                 data: null,
             });
+            return;
+        }
+        const err = await this._postService.deletePost(id, user);
+        if (err) {
+            res.status(403).json({
+                success: false,
+                error: 'Forbidden',
+                data: null,
+            });
         } else {
-            await this._postService.deletePost(id);
             res.status(200).json({ success: true, data: null });
         }
     }

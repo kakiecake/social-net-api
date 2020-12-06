@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 import { UserEntity, isUserTag, UserTag } from '../entities/UserEntity';
-import { IUserRepository } from './UserService';
+import { IUserRepository } from './IUserRepository';
 
 export class LoginService {
     constructor(

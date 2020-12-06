@@ -1,4 +1,4 @@
-import { IUserRepository } from '../services/UserService';
+import { IUserRepository } from '../services/IUserRepository';
 import { UserEntity, UserTag } from '../entities/UserEntity';
 
 export class InMemoryUserRepository implements IUserRepository {
