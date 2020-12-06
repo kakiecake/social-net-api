@@ -1,10 +1,11 @@
 import { PostEntity, PostId } from '../entities/PostEntity';
 import { UserEntity, UserTag } from '../entities/UserEntity';
 import { PostFactory } from './PostFactory';
+import { PostView } from '../dto/PostView';
 
 export interface IPostRepository {
     getPostsByUser(user: UserTag, limit?: number): Promise<PostEntity[]>;
-    findOne(id: PostId): Promise<PostEntity>;
+    findOne(id: PostId): Promise<PostEntity | null>;
     save(post: PostEntity): Promise<PostEntity>;
     delete(id: PostId): Promise<void>;
 }
@@ -17,11 +18,15 @@ export class PostService {
         private readonly _postFactory: PostFactory
     ) {}
 
-    public getPostsForUser(
+    public async getPostsForUser(
         userTag: UserTag,
         limit?: number
-    ): Promise<PostEntity[]> {
-        return this._postRepository.getPostsByUser(userTag, limit);
+    ): Promise<PostView[]> {
+        const posts = await this._postRepository.getPostsByUser(userTag, limit);
+        const postViews = posts.map(post =>
+            this._postFactory.convertPostToDTO(post)
+        );
+        return postViews;
     }
 
     public async createPost(

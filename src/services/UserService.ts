@@ -1,13 +1,14 @@
 import { UserEntity, UserTag } from '../entities/UserEntity';
 import { UserFactory, IHashingProvider } from './UserFactory';
+import { UserView } from '../dto/UserView';
 
 export interface IUserRepository {
     findOne(tag: string): Promise<UserEntity | null>;
     save(user: UserEntity): Promise<void>;
 }
 
-export class UserExistsError extends Error {}
-export class UserNotFoundError extends Error {}
+export type UserExistsError = Error;
+export type UserNotFoundError = Error;
 
 export class UserService {
     constructor(
@@ -20,12 +21,12 @@ export class UserService {
         tag: UserTag,
         fullName: string,
         password: string
-    ): Promise<UserEntity | UserExistsError> {
+    ): Promise<UserView | UserExistsError> {
         if ((await this._userRepository.findOne(tag)) !== null)
-            return new UserExistsError();
+            return new Error();
         const user = this._userFactory.createNewUser(fullName, tag, password);
         await this._userRepository.save(user);
-        return user;
+        return this._userFactory.convertUserToDTO(user);
     }
 
     private _checkUserPassword(user: UserEntity, password: string): boolean {

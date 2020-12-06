@@ -23,6 +23,10 @@ export class PostEntity {
         return this._id;
     }
 
+    public setId(id: PostId) {
+        if (!this._id) this._id = id;
+    }
+
     get title() {
         return this._title;
     }

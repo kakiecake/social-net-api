@@ -1,4 +1,5 @@
 import { UserTag, UserEntity } from '../entities/UserEntity';
+import { UserView } from '../dto/UserView';
 
 export interface IHashingProvider {
     generateSalt(): string;
@@ -17,5 +18,13 @@ export class UserFactory {
         const hash = this._hashingProvider.hash(password, salt);
         const createdAt = Date.now();
         return new UserEntity(fullName, tag, hash, salt, createdAt);
+    }
+
+    public convertUserToDTO(user: UserEntity): UserView {
+        return {
+            tag: user.tag,
+            fullName: user.fullName,
+            createdAt: user.createdAt,
+        };
     }
 }
