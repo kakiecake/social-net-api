@@ -1,22 +1,23 @@
 import { Module } from '@nestjs/common';
-import { UserService } from './services/UserService';
-import { IUserRepository } from './services/IUserRepository';
-import { PostController } from './controllers/PostController';
-import { LoginService } from './services/LoginService';
-import { AuthGuard } from './controllers/authUtils';
-import { UserController } from './controllers/UserController';
-import { UserFactory, IHashingProvider } from './services/UserFactory';
-import { InMemoryUserRepository } from './repositories/InMemoryUserRepository';
-import { InMemoryPostRepository } from './repositories/InMemoryPostRepository';
-import { SHA256HashingProvider } from './services/SHA256HashingProvider';
-import { PostService } from './services/PostService';
-import { IPostRepository } from './services/IPostRepository';
-import { PostFactory } from './services/PostFactory';
-import { CommentFactory } from './services/CommentFactory';
-import { ICommentRepository } from './services/ICommentRepository';
-import { InMemoryCommentRepository } from './repositories/InMemoryCommentRepository';
 import { HTTPResponseInterceptor } from './controllers/HTTPResponseInterceptor';
 import { CommentController } from './controllers/CommentController';
+import { PostController } from './controllers/PostController';
+import { UserController } from './controllers/UserController';
+import { AuthGuard } from './controllers/AuthGuard';
+import { PostFactory } from './modules/posts/PostFactory';
+import { CommentFactory } from './modules/posts/CommentFactory';
+import { AuthHandler } from './controllers/AuthHandler';
+import { InMemoryUserRepository } from './implementations/InMemoryUserRepository';
+import { InMemoryPostRepository } from './implementations/InMemoryPostRepository';
+import { UserService } from './modules/users/UserService';
+import { UserFactory, IHashingProvider } from './modules/users/UserFactory';
+import { SHA256HashingProvider } from './implementations/SHA256HashingProvider';
+import { PostService } from './modules/posts/PostService';
+import { IPostRepository } from './modules/posts/IPostRepository';
+import { ICommentRepository } from './modules/posts/ICommentRepository';
+import { InMemoryCommentRepository } from './implementations/InMemoryCommentRepository';
+import { UserFacade } from './modules/users/UserFacade';
+import { PostFacade } from './modules/posts/PostFacade';
 
 const UserRepositorySymbol = Symbol('UserRepository');
 const PostRepositorySymbol = Symbol('PostRepository');
@@ -27,16 +28,8 @@ const HashingProviderSymbol = Symbol('HashingProvider');
     controllers: [PostController, UserController, CommentController],
     providers: [
         HTTPResponseInterceptor,
-        AuthGuard,
         PostFactory,
         CommentFactory,
-        {
-            provide: LoginService,
-            inject: [UserRepositorySymbol],
-            useFactory: (userRepository: IUserRepository) => {
-                return new LoginService(userRepository, '~privateKey~', 60);
-            },
-        },
         {
             provide: UserRepositorySymbol,
             useFactory: () => {
@@ -97,8 +90,30 @@ const HashingProviderSymbol = Symbol('HashingProvider');
         },
         {
             provide: CommentRepositorySymbol,
+            useFactory: () => new InMemoryCommentRepository(),
+        },
+        {
+            provide: AuthGuard,
+            inject: [AuthHandler],
+            useFactory: (authHandler: AuthHandler) =>
+                new AuthGuard(authHandler),
+        },
+        {
+            provide: UserFacade,
+            inject: [UserService],
+            useFactory: (userService: UserService) =>
+                new UserFacade(userService),
+        },
+        {
+            provide: PostFacade,
+            inject: [PostService],
+            useFactory: (postService: PostService) =>
+                new PostFacade(postService),
+        },
+        {
+            provide: AuthHandler,
             useFactory: () => {
-                return new InMemoryCommentRepository();
+                return new AuthHandler('~privateKey~', 60);
             },
         },
     ],

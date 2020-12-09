@@ -1,5 +1,5 @@
-import { IUserRepository } from '../services/IUserRepository';
-import { UserEntity, UserTag } from '../entities/UserEntity';
+import { IUserRepository } from '../modules/users/IUserRepository';
+import { UserEntity, UserTag } from '../modules/users/UserEntity';
 
 export class InMemoryUserRepository implements IUserRepository {
     private _users: Map<UserTag, UserEntity> = new Map();

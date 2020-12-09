@@ -9,22 +9,18 @@ import {
     Patch,
     UseInterceptors,
 } from '@nestjs/common';
-import { AuthGuard, User } from './authUtils';
-import { UserEntity } from '../entities/UserEntity';
-import {
-    PostService,
-    NotAllowedError,
-    PostNotFoundError,
-} from '../services/PostService';
-import { ControllerResponse } from './ApiResponse';
-import { PostView } from '../dto/PostView';
+import { AuthGuard, User } from './AuthGuard';
+import { PostFacade } from '../modules/posts/PostFacade';
+import { PostView } from '../modules/posts/PostView';
+import { PostDetailView } from '../modules/posts/PostDetailView';
 import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
-import { PostDetailView } from '../dto/PostDetailView';
+import { ControllerResponse } from './ApiResponse';
+import { NotAllowedError, PostNotFoundError } from '../modules/posts/errors';
 
 @UseInterceptors(HTTPResponseInterceptor)
 @Controller('/posts')
 export class PostController {
-    constructor(private readonly _postService: PostService) {}
+    constructor(private readonly _postFacade: PostFacade) {}
 
     @Get('/:id')
     public async getPostWithComments(
@@ -33,7 +29,7 @@ export class PostController {
         let id = Number(idParam);
         if (isNaN(id)) return [400, 'Invalid ID parameter'];
 
-        const post = await this._postService.getPostWithComments(id);
+        const post = await this._postFacade.getPostWithComments(id);
         if (!post) return [404, 'Post not found'];
         else return [200, post];
     }
@@ -41,9 +37,9 @@ export class PostController {
     @UseGuards(AuthGuard)
     @Get('/')
     public async getPosts(
-        @User() user: UserEntity
+        @User() user: string
     ): Promise<ControllerResponse<PostView[]>> {
-        const posts = await this._postService.getPostsForUser(user.tag);
+        const posts = await this._postFacade.getPostsByUser(user);
         return [200, posts];
     }
 
@@ -52,16 +48,16 @@ export class PostController {
     public async createPost(
         @Body('title') title: string,
         @Body('text') text: string,
-        @User() user: UserEntity
+        @User() user: string
     ): Promise<ControllerResponse<PostView>> {
-        const post = await this._postService.createPost(title, text, user);
+        const post = await this._postFacade.createPost(title, text, user);
         return [200, post];
     }
 
     @UseGuards(AuthGuard)
     @Patch('/')
     public async editPost(
-        @User() user: UserEntity,
+        @User() user: string,
         @Body('id') idParam: string,
         @Body('title') title?: string,
         @Body('text') text?: string
@@ -70,7 +66,7 @@ export class PostController {
         if (isNaN(id)) return [400, 'Invalid ID parameter'];
         if (!title && !text) return [400, 'Title or text must be provided'];
 
-        const post = await this._postService.editPost(id, title, text, user);
+        const post = await this._postFacade.editPost(id, title, text, user);
         if (post instanceof NotAllowedError) return [403, 'Forbidden'];
         if (post instanceof PostNotFoundError) return [404, 'Post not found'];
         return [200, null];
@@ -80,11 +76,11 @@ export class PostController {
     @Delete('/:id')
     public async deletePost(
         @Param('id') idParam: string,
-        @User() user: UserEntity
+        @User() user: string
     ) {
         let id = Number(idParam);
         if (isNaN(id)) return [400, 'Invalid ID parameter'];
-        const err = await this._postService.deletePost(id, user);
+        const err = await this._postFacade.deletePost(id, user);
         if (err) return [403, 'Forbidden'];
         else return [200, null];
     }

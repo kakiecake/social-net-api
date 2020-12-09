@@ -1,21 +1,20 @@
 import {
     ExecutionContext,
     CanActivate,
-    Injectable,
     createParamDecorator,
+    Injectable,
 } from '@nestjs/common';
-import { LoginService } from '../services/LoginService';
-import { UserEntity } from '../entities/UserEntity';
+import { AuthHandler } from './AuthHandler';
 
-export const User = createParamDecorator(
-    (_: unknown, ctx: ExecutionContext): UserEntity | null => {
-        return ctx.switchToHttp().getRequest().user || null;
-    }
-);
+export const User = createParamDecorator((_: unknown, ctx: ExecutionContext):
+    | string
+    | null => {
+    return ctx.switchToHttp().getRequest().user || null;
+});
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-    constructor(private readonly _loginService: LoginService) {}
+    constructor(private readonly _authHandler: AuthHandler) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
@@ -23,7 +22,7 @@ export class AuthGuard implements CanActivate {
         const sessionToken = request.headers['authorization'];
         if (!sessionToken) return false;
 
-        const user = await this._loginService.loginBySessionToken(sessionToken);
+        const user = await this._authHandler.loginBySessionToken(sessionToken);
         if (user instanceof Error) {
             return false;
         } else if (user) {

@@ -1,5 +1,5 @@
-import { UserTag, UserEntity } from '../entities/UserEntity';
-import { UserView } from '../dto/UserView';
+import { UserTag, UserEntity } from './UserEntity';
+import { UserView } from './UserView';
 
 export interface IHashingProvider {
     generateSalt(): string;

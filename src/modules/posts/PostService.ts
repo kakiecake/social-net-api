@@ -1,17 +1,17 @@
-import { PostEntity, PostId } from '../entities/PostEntity';
-import { UserTag, UserEntity } from '../entities/UserEntity';
+import { PostEntity, PostId } from './PostEntity';
 import { PostFactory } from './PostFactory';
-import { PostView } from '../dto/PostView';
-import { PostDetailView } from '../dto/PostDetailView';
+import { PostView } from './PostView';
+import { PostDetailView } from './PostDetailView';
 import { IPostRepository } from './IPostRepository';
 import { ICommentRepository } from './ICommentRepository';
 import { CommentFactory } from './CommentFactory';
-import { CommentId } from '../entities/CommentEntity';
-import { CommentView } from '../dto/CommentView';
-
-export class CommentNotFoundError extends Error {}
-export class PostNotFoundError extends Error {}
-export class NotAllowedError extends Error {}
+import { CommentId } from './CommentEntity';
+import { CommentView } from './CommentView';
+import {
+    CommentNotFoundError,
+    PostNotFoundError,
+    NotAllowedError,
+} from './errors';
 
 export class PostService {
     constructor(
@@ -42,8 +42,8 @@ export class PostService {
         return { ...postDTO, comments: commentDTOs };
     }
 
-    public async getPostsForUser(
-        userTag: UserTag,
+    public async getPostsByUser(
+        userTag: string,
         limit?: number
     ): Promise<PostView[]> {
         const posts = await this._postRepository.getPostsByUser(userTag, limit);
@@ -56,9 +56,9 @@ export class PostService {
     public async createPost(
         title: string,
         text: string,
-        author: UserEntity
+        authorTag: string
     ): Promise<PostView> {
-        const newPost = this._postFactory.createNewPost(title, text, author);
+        const newPost = this._postFactory.createNewPost(title, text, authorTag);
         const savedPost = await this._postRepository.save(newPost);
         const postView = this._postFactory.convertPostToDTO(savedPost);
         return postView;
@@ -68,11 +68,11 @@ export class PostService {
         id: PostId,
         title: string | undefined,
         text: string | undefined,
-        author: UserEntity
+        authorTag: string
     ): Promise<PostEntity | PostNotFoundError | NotAllowedError> {
         const post = await this._postRepository.findOne(id);
         if (post === null) return new PostNotFoundError();
-        if (post.author.tag !== author.tag) return new NotAllowedError();
+        if (post.authorTag !== authorTag) return new NotAllowedError();
         if (title) post.changeTitle(title);
         if (text) post.changeText(text);
         return this._postRepository.save(post);
@@ -80,11 +80,11 @@ export class PostService {
 
     public async deletePost(
         id: PostId,
-        author: UserEntity
+        authorTag: string
     ): Promise<NotAllowedError | null> {
         const isDeleted = await this._postRepository.deleteIfAuthorTagIsCorrect(
             id,
-            author.tag
+            authorTag
         );
 
         if (!isDeleted) {
@@ -97,7 +97,7 @@ export class PostService {
     public async leaveComment(
         text: string,
         postId: PostId,
-        userTag: UserTag
+        userTag: string
     ): Promise<CommentView | PostNotFoundError> {
         if (this._postRepository.findOne(postId) === null)
             return new PostNotFoundError();
@@ -110,10 +110,9 @@ export class PostService {
         return this._commentFactory.convertCommentToDTO(savedComment);
     }
 
-    public async getCommentsForPost(post: PostEntity): Promise<CommentView[]> {
-        if (post.id === null) return [];
+    public async getCommentsForPost(postId: PostId): Promise<CommentView[]> {
         const comments = await this._commentRepository.getCommentsForPost(
-            post.id
+            postId
         );
         return comments.map(comment =>
             this._commentFactory.convertCommentToDTO(comment)
@@ -123,11 +122,11 @@ export class PostService {
     public async editComment(
         text: string,
         commentId: CommentId,
-        author: UserEntity
+        authorTag: string
     ): Promise<CommentNotFoundError | NotAllowedError | null> {
         const comment = await this._commentRepository.findOne(commentId);
         if (comment === null) return new CommentNotFoundError();
-        if (comment.authorTag !== author.tag) return new NotAllowedError();
+        if (comment.authorTag !== authorTag) return new NotAllowedError();
         comment.changeText(text);
         await this._commentRepository.save(comment);
         return null;
@@ -135,12 +134,13 @@ export class PostService {
 
     public async deleteComment(
         commentId: CommentId,
-        author: UserEntity
+        authorTag: string
     ): Promise<NotAllowedError | null> {
         const isDeleted = await this._commentRepository.deleteIfAuthorTagIsCorrect(
             commentId,
-            author.tag
+            authorTag
         );
+
         if (!isDeleted) {
             return new NotAllowedError();
         } else {

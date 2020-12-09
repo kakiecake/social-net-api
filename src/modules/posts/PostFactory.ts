@@ -1,24 +1,23 @@
-import { PostId, PostEntity } from '../entities/PostEntity';
-import { UserEntity } from '../entities/UserEntity';
-import { PostView } from '../dto/PostView';
+import { PostId, PostEntity } from './PostEntity';
+import { PostView } from './PostView';
 
 export class PostFactory {
     public createPostFromDTO(
         id: PostId,
         title: string,
         text: string,
-        author: UserEntity,
+        authorTag: string,
         createdAt: number
     ): PostEntity {
-        return new PostEntity(id, title, text, author, createdAt);
+        return new PostEntity(id, title, text, authorTag, createdAt);
     }
 
     public createNewPost(
         title: string,
         text: string,
-        author: UserEntity
+        authorTag: string
     ): PostEntity {
-        return new PostEntity(null, title, text, author, Date.now());
+        return new PostEntity(null, title, text, authorTag, Date.now());
     }
 
     public convertPostToDTO(post: PostEntity): PostView {
@@ -26,7 +25,7 @@ export class PostFactory {
             id: post.id as PostId,
             title: post.title,
             text: post.text,
-            authorTag: post.author.tag,
+            authorTag: post.authorTag,
             createdAt: post.createdAt,
         };
     }

@@ -1,6 +1,6 @@
-import { UserEntity, UserTag } from '../entities/UserEntity';
+import { UserEntity, UserTag } from './UserEntity';
 import { UserFactory, IHashingProvider } from './UserFactory';
-import { UserView } from '../dto/UserView';
+import { UserView } from './UserView';
 import { IUserRepository } from './IUserRepository';
 
 export type UserExistsError = Error;

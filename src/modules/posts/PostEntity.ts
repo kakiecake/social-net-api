@@ -1,5 +1,3 @@
-import { UserEntity } from './UserEntity';
-
 export type PostId = number;
 
 export class PostEntity {
@@ -7,7 +5,7 @@ export class PostEntity {
         private _id: PostId | null,
         private _title: string,
         private _text: string,
-        private _author: UserEntity,
+        private _authorTag: string,
         private _createdAt: number
     ) {}
 
@@ -35,8 +33,8 @@ export class PostEntity {
         return this._text;
     }
 
-    get author() {
-        return this._author;
+    get authorTag() {
+        return this._authorTag;
     }
 
     get createdAt() {

@@ -1,13 +1,12 @@
-import { CommentEntity } from '../entities/CommentEntity';
-import { CommentView } from '../dto/CommentView';
-import { UserTag } from '../entities/UserEntity';
-import { PostId } from '../entities/PostEntity';
+import { CommentEntity } from './CommentEntity';
+import { PostId } from './PostEntity';
+import { CommentView } from './CommentView';
 
 export class CommentFactory {
     public createComment(
         text: string,
         postId: PostId,
-        authorTag: UserTag
+        authorTag: string
     ): CommentEntity {
         return new CommentEntity(null, text, authorTag, postId, Date.now());
     }

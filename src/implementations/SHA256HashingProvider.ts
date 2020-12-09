@@ -1,7 +1,6 @@
 import { SHA256 } from 'crypto-js';
 import { randomBytes } from 'crypto';
-
-import { IHashingProvider } from './UserFactory';
+import { IHashingProvider } from '../modules/users/UserFactory';
 
 export class SHA256HashingProvider implements IHashingProvider {
     public generateSalt(): string {

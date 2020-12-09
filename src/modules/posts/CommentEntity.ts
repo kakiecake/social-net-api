@@ -1,4 +1,3 @@
-import { UserTag } from './UserEntity';
 import { PostId } from './PostEntity';
 export type CommentId = number;
 
@@ -6,7 +5,7 @@ export class CommentEntity {
     constructor(
         private _id: CommentId | null,
         private _text: string,
-        private _authorTag: UserTag,
+        private _authorTag: string,
         private _postId: PostId,
         private _createdAt: number
     ) {}

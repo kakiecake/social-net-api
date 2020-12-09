@@ -1,7 +1,6 @@
-import { ICommentRepository } from '../services/ICommentRepository';
-import { CommentEntity, CommentId } from '../entities/CommentEntity';
-import { UserTag } from '../entities/UserEntity';
-import { PostId } from '../entities/PostEntity';
+import { ICommentRepository } from '../modules/posts/ICommentRepository';
+import { CommentEntity, CommentId } from '../modules/posts/CommentEntity';
+import { PostId } from '../modules/posts/PostEntity';
 
 export class InMemoryCommentRepository implements ICommentRepository {
     private _comments: Array<CommentEntity> = [];
@@ -35,7 +34,7 @@ export class InMemoryCommentRepository implements ICommentRepository {
 
     public async deleteIfAuthorTagIsCorrect(
         id: CommentId,
-        authorTag: UserTag
+        authorTag: string
     ): Promise<boolean> {
         const index = this._comments.findIndex(
             x => x.id === id && x.authorTag === authorTag
