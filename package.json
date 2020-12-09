@@ -10,7 +10,9 @@
     "@nestjs/core": "^7.5.5",
     "@nestjs/platform-express": "^7.5.5",
     "@types/crypto-js": "^4.0.1",
+    "@types/dependency-tree": "^7.2.0",
     "@types/express": "^4.17.9",
+    "@types/jest": "^26.0.18",
     "@types/jsonwebtoken": "^8.5.0",
     "crypto-js": "^4.0.0",
     "express": "^4.17.1",
@@ -20,13 +22,29 @@
     "rxjs": "^6.6.3"
   },
   "devDependencies": {
+    "dependency-tree": "^7.2.2",
+    "jest": "^26.6.3",
     "nodemon": "2.0.0",
+    "ts-jest": "^26.4.4",
     "ts-node": "^9.1.0"
   },
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "run": "ts-node src/build.ts",
-    "run:compiled": "node build/index.js"
+    "run:compiled": "node build/index.js",
+    "test": "jest test"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "testEnvironment": "node"
   }
 }

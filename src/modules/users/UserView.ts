@@ -1,7 +1,5 @@
-import { UserTag } from '../entities/UserEntity';
-
 export type UserView = {
-    tag: UserTag;
+    tag: string;
     fullName: string;
     createdAt: number;
 };

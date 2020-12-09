@@ -1,10 +1,9 @@
-import { UserTag } from '../entities/UserEntity';
-import { PostId } from '../entities/PostEntity';
+import { PostId } from './PostEntity';
 
 export type PostView = {
     id: PostId;
     title: string;
     text: string;
-    authorTag: UserTag;
+    authorTag: string;
     createdAt: number;
 };
