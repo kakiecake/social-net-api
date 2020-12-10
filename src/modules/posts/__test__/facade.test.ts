@@ -7,9 +7,11 @@ import { IPostRepository } from '../IPostRepository';
 import { ICommentRepository } from '../ICommentRepository';
 import { PostFacade } from '../PostFacade';
 import { PostView } from '../PostView';
-import { NotAllowedError } from '../errors';
+import { NotAllowedError, PostNotFoundError } from '../errors';
 
-describe('post module api test', () => {
+import faker from 'faker';
+
+describe('Post module api test', () => {
     let postRepository: IPostRepository;
     let commentRepository: ICommentRepository;
     let postFactory: PostFactory;
@@ -17,7 +19,7 @@ describe('post module api test', () => {
     let service: PostService;
     let facade: PostFacade;
 
-    beforeEach(() => {
+    beforeAll(() => {
         postRepository = new InMemoryPostRepository();
         commentRepository = new InMemoryCommentRepository();
         postFactory = new PostFactory();
@@ -31,52 +33,95 @@ describe('post module api test', () => {
         facade = new PostFacade(service);
     });
 
-    it('creates and gets a post', async () => {
-        let title = 'Title';
-        let text = 'Text';
-        let authorTag = '@author';
+    describe('CRUD on posts', () => {
+        describe('Create and get a post', () => {
+            let title = faker.random.word();
+            let text = faker.lorem.text();
+            let authorTag = '@' + faker.random.word();
 
-        let newPost = await facade.createPost(title, text, authorTag);
-        const post = await facade.getPostById(newPost.id);
+            it('returns null if post does not exist', async () => {
+                const wrongPostId = 2000;
+                const post = await facade.getPostById(wrongPostId);
+                expect(post).toBeNull();
+            });
 
-        expect(post).toEqual(newPost);
-    });
+            it('gets a post successfully', async () => {
+                let newPost = await facade.createPost(title, text, authorTag);
+                const post = await facade.getPostById(newPost.id);
+                expect(post).toEqual(newPost);
+            });
+        });
 
-    it('edits posts', async () => {
-        let title = 'Title';
-        let text = 'Text';
-        let authorTag = '@author';
-        let newTitle = 'New Title';
+        describe('Edit post', () => {
+            let title: string, text: string, authorTag: string, post: PostView;
+            beforeEach(async () => {
+                title = faker.random.word();
+                text = faker.lorem.text();
+                authorTag = '@' + faker.random.word();
+                post = await facade.createPost(title, text, authorTag);
+            });
 
-        const post = await facade.createPost(title, text, authorTag);
-        const editedPost = await facade.editPost(
-            post.id,
-            newTitle,
-            undefined,
-            authorTag
-        );
+            it('returns a PostNotFoundError on unused ID', async () => {
+                const unusedId = 10100;
+                const err = await facade.editPost(
+                    unusedId,
+                    title,
+                    text,
+                    authorTag
+                );
+                expect(err).toBeInstanceOf(PostNotFoundError);
+            });
 
-        expect(editedPost).not.toBeInstanceOf(Error);
-        expect(editedPost).not.toEqual(post);
-        expect((editedPost as PostView).title).toEqual(newTitle);
-        expect((editedPost as PostView).text).toEqual(text);
-    });
+            it('returns a NotAllowedError on wrong user tag', async () => {
+                const notAnAuthorTag = '@definetlynotanauthor';
+                const err = await facade.editPost(
+                    post.id,
+                    title,
+                    text,
+                    notAnAuthorTag
+                );
+                expect(err).toBeInstanceOf(NotAllowedError);
+            });
 
-    it('deletes posts', async () => {
-        let title = 'Title';
-        let text = 'Text';
-        let authorTag = '@author';
-        let wrongAuthorTag = '@nottheauthor';
+            it('successfully edits a post', async () => {
+                let newTitle = faker.random.word();
 
-        let post = await facade.createPost(title, text, authorTag);
+                let editedPost = await facade.editPost(
+                    post.id,
+                    newTitle,
+                    undefined,
+                    authorTag
+                );
 
-        expect(await facade.deletePost(post.id, wrongAuthorTag)).toBeInstanceOf(
-            NotAllowedError
-        );
+                expect(editedPost).not.toBeInstanceOf(Error);
+                expect(editedPost).not.toEqual(post);
+                expect((editedPost as PostView).title).toEqual(newTitle);
+                expect((editedPost as PostView).text).toEqual(text);
+            });
+        });
 
-        expect(await facade.deletePost(post.id, authorTag)).toBeNull();
+        describe('Delete post', () => {
+            let title: string, text: string, authorTag: string, post: PostView;
+            beforeEach(async () => {
+                title = faker.random.word();
+                text = faker.lorem.text();
+                authorTag = '@' + faker.random.word();
+                post = await facade.createPost(title, text, authorTag);
+            });
 
-        let deletedPost = await facade.getPostById(post.id);
-        expect(deletedPost).toBeNull();
+            it('successfully deletes a post', async () => {
+                const err = await facade.deletePost(post.id, authorTag);
+                const deletedPost = await facade.getPostById(post.id);
+
+                expect(err).toBeNull();
+                expect(deletedPost).toBeNull();
+            });
+
+            it('returns a NotAllowedError on wrong authorTag', async () => {
+                const wrongAuthorTag = '@notanactualauthor';
+                const err = await facade.deletePost(post.id, wrongAuthorTag);
+                expect(err).toBeInstanceOf(NotAllowedError);
+            });
+        });
     });
 });

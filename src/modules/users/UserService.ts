@@ -32,13 +32,10 @@ export class UserService {
         return passwordHash === correctHash;
     }
 
-    async loginUser(
-        tag: UserTag,
-        password: string
-    ): Promise<UserEntity | null> {
+    async loginUser(tag: UserTag, password: string): Promise<UserView | null> {
         const user = await this._userRepository.findOne(tag);
         if (user && this._checkUserPassword(user, password)) {
-            return user;
+            return this._userFactory.convertUserToDTO(user);
         } else {
             return null;
         }

@@ -69,13 +69,14 @@ export class PostService {
         title: string | undefined,
         text: string | undefined,
         authorTag: string
-    ): Promise<PostEntity | PostNotFoundError | NotAllowedError> {
+    ): Promise<PostView | PostNotFoundError | NotAllowedError> {
         const post = await this._postRepository.findOne(id);
         if (post === null) return new PostNotFoundError();
         if (post.authorTag !== authorTag) return new NotAllowedError();
         if (title) post.changeTitle(title);
         if (text) post.changeText(text);
-        return this._postRepository.save(post);
+        const savedPost = await this._postRepository.save(post);
+        return this._postFactory.convertPostToDTO(savedPost);
     }
 
     public async deletePost(
