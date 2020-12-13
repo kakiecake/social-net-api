@@ -3,7 +3,7 @@ export type CommentId = number;
 
 export class CommentEntity {
     constructor(
-        private _id: CommentId | null,
+        private _id: CommentId | undefined,
         private _text: string,
         private _authorTag: string,
         private _postId: PostId,
@@ -11,7 +11,7 @@ export class CommentEntity {
     ) {}
 
     public setId(id: CommentId) {
-        if (this._id === null) this._id = id;
+        if (!this._id) this._id = id;
     }
 
     public changeText(text: string) {

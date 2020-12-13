@@ -27,4 +27,20 @@ export class UserFactory {
             createdAt: user.createdAt,
         };
     }
+
+    public createUserFromDTO(
+        fullName: string,
+        tag: string,
+        passwordHash: string,
+        passwordSalt: string,
+        createdAt: number
+    ): UserEntity {
+        return new UserEntity(
+            fullName,
+            tag,
+            passwordHash,
+            passwordSalt,
+            createdAt
+        );
+    }
 }

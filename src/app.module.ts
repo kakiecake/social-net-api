@@ -7,17 +7,21 @@ import { AuthGuard } from './controllers/AuthGuard';
 import { PostFactory } from './modules/posts/PostFactory';
 import { CommentFactory } from './modules/posts/CommentFactory';
 import { AuthHandler } from './controllers/AuthHandler';
-import { InMemoryUserRepository } from './implementations/InMemoryUserRepository';
-import { InMemoryPostRepository } from './implementations/InMemoryPostRepository';
 import { UserService } from './modules/users/UserService';
 import { UserFactory, IHashingProvider } from './modules/users/UserFactory';
 import { SHA256HashingProvider } from './implementations/SHA256HashingProvider';
 import { PostService } from './modules/posts/PostService';
 import { IPostRepository } from './modules/posts/IPostRepository';
 import { ICommentRepository } from './modules/posts/ICommentRepository';
-import { InMemoryCommentRepository } from './implementations/InMemoryCommentRepository';
 import { UserFacade } from './modules/users/UserFacade';
 import { PostFacade } from './modules/posts/PostFacade';
+import { UserRepository } from './implementations/UserRepository';
+import { CommentRepository } from './implementations/CommentRepository';
+import { PostRepository } from './implementations/PostRepository';
+import { UserModel } from './implementations/UserModel';
+import { PostModel } from './implementations/PostModel';
+import { CommentModel } from './implementations/CommentModel';
+import { createConnection, Connection } from 'typeorm';
 
 const UserRepositorySymbol = Symbol('UserRepository');
 const PostRepositorySymbol = Symbol('PostRepository');
@@ -31,16 +35,40 @@ const HashingProviderSymbol = Symbol('HashingProvider');
         PostFactory,
         CommentFactory,
         {
-            provide: UserRepositorySymbol,
-            useFactory: () => {
-                return new InMemoryUserRepository();
+            provide: UserFactory,
+            inject: [HashingProviderSymbol],
+            useFactory: (hashingProvider: IHashingProvider) => {
+                return new UserFactory(hashingProvider);
             },
         },
         {
-            provide: PostRepositorySymbol,
+            provide: Connection,
             useFactory: () => {
-                return new InMemoryPostRepository();
+                return createConnection({
+                    type: 'sqlite',
+                    database: './db.sqlite',
+                    entities: [UserModel, PostModel, CommentModel],
+                    synchronize: process.env.NODE_ENV !== 'production',
+                });
             },
+        },
+        {
+            provide: UserRepositorySymbol,
+            inject: [Connection, UserFactory],
+            useFactory: (connection: Connection, factory: UserFactory) =>
+                new UserRepository(factory, connection),
+        },
+        {
+            provide: CommentRepositorySymbol,
+            inject: [Connection, CommentFactory],
+            useFactory: (connection: Connection, factory: CommentFactory) =>
+                new CommentRepository(factory, connection),
+        },
+        {
+            provide: PostRepositorySymbol,
+            inject: [Connection, PostFactory],
+            useFactory: (connection: Connection, factory: PostFactory) =>
+                new PostRepository(factory, connection),
         },
         {
             provide: UserService,
@@ -51,13 +79,6 @@ const HashingProviderSymbol = Symbol('HashingProvider');
                     userRepository,
                     hashingProvider
                 );
-            },
-        },
-        {
-            provide: UserFactory,
-            inject: [HashingProviderSymbol],
-            useFactory: (hashingProvider: IHashingProvider) => {
-                return new UserFactory(hashingProvider);
             },
         },
         {
@@ -87,10 +108,6 @@ const HashingProviderSymbol = Symbol('HashingProvider');
                     commentFactory
                 );
             },
-        },
-        {
-            provide: CommentRepositorySymbol,
-            useFactory: () => new InMemoryCommentRepository(),
         },
         {
             provide: AuthGuard,

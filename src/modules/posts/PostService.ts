@@ -1,4 +1,4 @@
-import { PostEntity, PostId } from './PostEntity';
+import { PostId } from './PostEntity';
 import { PostFactory } from './PostFactory';
 import { PostView } from './PostView';
 import { PostDetailView } from './PostDetailView';
