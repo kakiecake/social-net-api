@@ -1,6 +1,11 @@
 import { ICommentRepository } from '../modules/posts/ICommentRepository';
 import { CommentEntity, CommentId } from '../modules/posts/CommentEntity';
 import { PostId } from '../modules/posts/PostEntity';
+import { PossiblyUnsaved } from '../utils';
+
+const isCommentSaved = (
+    comment: PossiblyUnsaved<CommentEntity>
+): comment is CommentEntity => comment.hasOwnProperty('id');
 
 export class InMemoryCommentRepository implements ICommentRepository {
     private _comments: Array<CommentEntity> = [];
@@ -13,23 +18,23 @@ export class InMemoryCommentRepository implements ICommentRepository {
         return this._comments.find(x => x.id === id) || null;
     }
 
-    public async save(comment: CommentEntity): Promise<CommentEntity> {
-        if (comment.id !== null) {
+    public async save(
+        comment: PossiblyUnsaved<CommentEntity>
+    ): Promise<CommentEntity> {
+        if (isCommentSaved(comment)) {
             this._comments = this._comments.map(x =>
-                x.id === comment.id
-                    ? (comment as CommentEntity & { id: number })
-                    : x
+                x.id === comment.id ? comment : x
             );
+            return comment;
         } else {
             const lastId =
                 this._comments.length > 0
-                    ? (this._comments[this._comments.length - 1]
-                          .id as CommentId)
+                    ? this._comments[this._comments.length - 1].id
                     : 0;
-            comment.setId(lastId + 1);
-            this._comments.push(comment);
+            const newComment = { id: lastId + 1, ...comment };
+            this._comments.push(newComment);
+            return newComment;
         }
-        return comment;
     }
 
     public async deleteIfAuthorTagIsCorrect(

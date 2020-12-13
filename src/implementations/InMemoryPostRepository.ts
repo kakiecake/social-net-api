@@ -1,5 +1,9 @@
 import { PostEntity, PostId } from '../modules/posts/PostEntity';
 import { IPostRepository } from '../modules/posts/IPostRepository';
+import { PossiblyUnsaved } from '../utils';
+
+const isPostSaved = (post: PossiblyUnsaved<PostEntity>): post is PostEntity =>
+    post.hasOwnProperty('id');
 
 export class InMemoryPostRepository implements IPostRepository {
     private _posts: PostEntity[] = [];
@@ -8,18 +12,19 @@ export class InMemoryPostRepository implements IPostRepository {
         return this._posts.find(post => post.id === id) || null;
     }
 
-    public async save(post: PostEntity): Promise<PostEntity> {
-        if (post.id) {
+    public async save(post: PossiblyUnsaved<PostEntity>): Promise<PostEntity> {
+        if (isPostSaved(post)) {
             this._posts = this._posts.map(x => (x.id === post.id ? post : x));
+            return post;
         } else {
             const lastId =
                 this._posts.length > 0
-                    ? (this._posts[this._posts.length - 1].id as PostId)
+                    ? this._posts[this._posts.length - 1].id
                     : 0;
-            post.setId(lastId + 1);
-            this._posts.push(post);
+            const newPost = { id: lastId + 1, ...post };
+            this._posts.push(newPost);
+            return newPost;
         }
-        return post;
     }
 
     public async deleteIfAuthorTagIsCorrect(

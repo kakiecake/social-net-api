@@ -6,19 +6,18 @@ export class CommentFactory {
         text: string,
         postId: number,
         authorTag: string
-    ): CommentEntity {
-        return new CommentEntity(
-            undefined,
+    ): Omit<CommentEntity, 'id'> {
+        return {
             text,
             authorTag,
             postId,
-            Date.now()
-        );
+            createdAt: Date.now(),
+        };
     }
 
     public convertCommentToDTO(comment: CommentEntity): CommentView {
         return {
-            id: comment.id || null,
+            id: comment.id,
             text: comment.text,
             createdAt: comment.createdAt,
             authorTag: comment.authorTag,
@@ -32,6 +31,6 @@ export class CommentFactory {
         postId: number,
         createdAt: number
     ) {
-        return new CommentEntity(id, text, authorTag, postId, createdAt);
+        return { id, text, authorTag, postId, createdAt };
     }
 }

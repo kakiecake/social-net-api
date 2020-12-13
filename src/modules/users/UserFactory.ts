@@ -14,10 +14,16 @@ export class UserFactory {
         tag: UserTag,
         password: string
     ): UserEntity {
-        const salt = this._hashingProvider.generateSalt();
-        const hash = this._hashingProvider.hash(password, salt);
+        const passwordSalt = this._hashingProvider.generateSalt();
+        const passwordHash = this._hashingProvider.hash(password, passwordSalt);
         const createdAt = Date.now();
-        return new UserEntity(fullName, tag, hash, salt, createdAt);
+        return {
+            fullName,
+            tag,
+            passwordSalt,
+            passwordHash,
+            createdAt,
+        };
     }
 
     public convertUserToDTO(user: UserEntity): UserView {
@@ -35,12 +41,6 @@ export class UserFactory {
         passwordSalt: string,
         createdAt: number
     ): UserEntity {
-        return new UserEntity(
-            fullName,
-            tag,
-            passwordHash,
-            passwordSalt,
-            createdAt
-        );
+        return { fullName, tag, passwordHash, passwordSalt, createdAt };
     }
 }

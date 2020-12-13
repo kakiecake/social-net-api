@@ -3,6 +3,7 @@ import { PostEntity, PostId } from '../modules/posts/PostEntity';
 import { Connection, Repository } from 'typeorm';
 import { PostModel } from './PostModel';
 import { PostFactory } from '../modules/posts/PostFactory';
+import { PossiblyUnsaved } from '../utils';
 
 export class PostRepository implements IPostRepository {
     private readonly _posts: Repository<PostModel>;
@@ -40,24 +41,8 @@ export class PostRepository implements IPostRepository {
             );
     }
 
-    public async save(post: PostEntity): Promise<PostEntity> {
-        let savedPost: PostModel;
-        if (post.id === null) {
-            savedPost = await this._posts.save({
-                title: post.title,
-                text: post.text,
-                authorTag: post.authorTag,
-                createdAt: post.createdAt,
-            });
-        } else {
-            savedPost = await this._posts.save({
-                id: post.id,
-                title: post.title,
-                text: post.text,
-                authorTag: post.authorTag,
-                createdAt: post.createdAt,
-            });
-        }
+    public async save(post: PossiblyUnsaved<PostEntity>): Promise<PostEntity> {
+        const savedPost: PostModel = await this._posts.save(post);
         return this._postFactory.createPostFromDTO(
             savedPost.id,
             savedPost.title,

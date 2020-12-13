@@ -3,6 +3,7 @@ import { CommentModel } from './CommentModel';
 import { CommentEntity } from '../modules/posts/CommentEntity';
 import { Connection, Repository } from 'typeorm';
 import { CommentFactory } from '../modules/posts/CommentFactory';
+import { PossiblyUnsaved } from '../utils';
 
 export class CommentRepository implements ICommentRepository {
     private readonly _comments: Repository<CommentModel>;
@@ -40,15 +41,8 @@ export class CommentRepository implements ICommentRepository {
         );
     }
 
-    public async save(comment: CommentEntity) {
-        const savedComment = await this._comments.save({
-            id: comment.id,
-            text: comment.text,
-            authorTag: comment.authorTag,
-            postId: comment.postId,
-            createdAt: comment.createdAt,
-        });
-
+    public async save(comment: PossiblyUnsaved<CommentEntity>) {
+        const savedComment = await this._comments.save(comment);
         return this._commentFactory.createCommentFromDTO(
             savedComment.id,
             savedComment.text,

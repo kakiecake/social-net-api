@@ -1,13 +1,12 @@
-import { CommentId, CommentEntity } from '../entities/CommentEntity';
-import { UserTag } from '../entities/UserEntity';
-import { PostId } from '../entities/PostEntity';
+import { CommentId, CommentEntity } from './CommentEntity';
+import { PossiblyUnsaved } from '../../utils';
 
 export interface ICommentRepository {
     findOne(id: CommentId): Promise<CommentEntity | null>;
-    getCommentsForPost(postId: PostId): Promise<Array<CommentEntity>>;
-    save(comment: CommentEntity): Promise<CommentEntity>;
+    getCommentsForPost(postId: number): Promise<Array<CommentEntity>>;
+    save(comment: PossiblyUnsaved<CommentEntity>): Promise<CommentEntity>;
     deleteIfAuthorTagIsCorrect(
         id: CommentId,
-        authorTag: UserTag
+        authorTag: string
     ): Promise<boolean>;
 }

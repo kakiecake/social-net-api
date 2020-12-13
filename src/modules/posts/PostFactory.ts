@@ -9,20 +9,20 @@ export class PostFactory {
         authorTag: string,
         createdAt: number
     ): PostEntity {
-        return new PostEntity(id, title, text, authorTag, createdAt);
+        return { id, title, text, authorTag, createdAt };
     }
 
     public createNewPost(
         title: string,
         text: string,
         authorTag: string
-    ): PostEntity {
-        return new PostEntity(null, title, text, authorTag, Date.now());
+    ): Omit<PostEntity, 'id'> {
+        return { title, text, authorTag, createdAt: Date.now() };
     }
 
     public convertPostToDTO(post: PostEntity): PostView {
         return {
-            id: post.id as PostId,
+            id: post.id,
             title: post.title,
             text: post.text,
             authorTag: post.authorTag,

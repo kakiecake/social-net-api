@@ -10,9 +10,13 @@ describe('Posts module dependency test', () => {
                 directory: directory,
             })
             .map(x => path.relative(directory, x));
-        const outsideDependencies = dependencies.filter(
-            x => x.split(path.sep)[0] === '..'
-        );
+        const outsideDependencies = dependencies.filter(x => {
+            const parts = x.split(path.sep)[0];
+            return (
+                parts[0] === '..' &&
+                !parts[parts.length - 1].startsWith('utils')
+            );
+        });
         expect(outsideDependencies).toHaveLength(0);
     });
 });

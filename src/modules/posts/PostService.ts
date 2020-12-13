@@ -73,8 +73,8 @@ export class PostService {
         const post = await this._postRepository.findOne(id);
         if (post === null) return new PostNotFoundError();
         if (post.authorTag !== authorTag) return new NotAllowedError();
-        if (title) post.changeTitle(title);
-        if (text) post.changeText(text);
+        if (title) post.title = title;
+        if (text) post.text = text;
         const savedPost = await this._postRepository.save(post);
         return this._postFactory.convertPostToDTO(savedPost);
     }
@@ -128,7 +128,7 @@ export class PostService {
         const comment = await this._commentRepository.findOne(commentId);
         if (comment === null) return new CommentNotFoundError();
         if (comment.authorTag !== authorTag) return new NotAllowedError();
-        comment.changeText(text);
+        comment.text = text;
         await this._commentRepository.save(comment);
         return null;
     }
