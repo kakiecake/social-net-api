@@ -21,7 +21,9 @@ export class HTTPResponseInterceptor implements NestInterceptor {
             const res: Response = context.switchToHttp().getResponse();
 
             const success = isSuccess(statusCode);
-            let body = success ? { success, data } : { success, error: data };
+            let body = success
+                ? { success, data }
+                : { success, error: data, data: null };
             res.status(statusCode);
             return body;
         };

@@ -84,4 +84,16 @@ export class PostController {
         if (err) return [403, 'Forbidden'];
         else return [200, null];
     }
+
+    @UseGuards(AuthGuard)
+    @Post('/like')
+    public async likePost(
+        @Body('postId') postIdParam: string,
+        @User() user: string
+    ) {
+        const postId = Number(postIdParam);
+        if (isNaN(postId)) return [400, 'Invalid postId parameter'];
+        const likes = await this._postFacade.likePost(postId, user);
+        return [200, likes];
+    }
 }

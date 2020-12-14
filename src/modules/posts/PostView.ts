@@ -6,4 +6,5 @@ export type PostView = {
     text: string;
     authorTag: string;
     createdAt: number;
+    likes: number;
 };

@@ -12,19 +12,22 @@ import {
     PostNotFoundError,
     NotAllowedError,
 } from './errors';
+import { ILikeRepository } from './ILikeRepository';
 
 export class PostService {
     constructor(
         private readonly _postRepository: IPostRepository,
         private readonly _postFactory: PostFactory,
         private readonly _commentRepository: ICommentRepository,
-        private readonly _commentFactory: CommentFactory
+        private readonly _commentFactory: CommentFactory,
+        private readonly _likeRepository: ILikeRepository
     ) {}
 
     public async getPostById(postId: PostId): Promise<PostView | null> {
         const post = await this._postRepository.findOne(postId);
         if (post === null) return null;
-        return this._postFactory.convertPostToDTO(post);
+        const likes = await this._likeRepository.getLikesForPost(postId);
+        return { ...post, likes };
     }
 
     public async getPostWithComments(
@@ -32,14 +35,11 @@ export class PostService {
     ): Promise<PostDetailView | null> {
         const post = await this._postRepository.findOne(postId);
         if (post === null) return null;
-        const comments = await this._commentRepository.getCommentsForPost(
-            postId
-        );
-        const postDTO = this._postFactory.convertPostToDTO(post);
-        const commentDTOs = comments.map(x =>
-            this._commentFactory.convertCommentToDTO(x)
-        );
-        return { ...postDTO, comments: commentDTOs };
+        const [likes, comments] = await Promise.all([
+            this._likeRepository.getLikesForPost(postId),
+            this._commentRepository.getCommentsForPost(postId),
+        ]);
+        return { ...post, likes, comments };
     }
 
     public async getPostsByUser(
@@ -47,10 +47,10 @@ export class PostService {
         limit?: number
     ): Promise<PostView[]> {
         const posts = await this._postRepository.getPostsByUser(userTag, limit);
-        const postViews = posts.map(post =>
-            this._postFactory.convertPostToDTO(post)
+        const likes = await this._likeRepository.getLikesForMultiplePosts(
+            posts.map(post => post.id)
         );
-        return postViews;
+        return posts.map((post, index) => ({ ...post, likes: likes[index] }));
     }
 
     public async createPost(
@@ -60,8 +60,7 @@ export class PostService {
     ): Promise<PostView> {
         const newPost = this._postFactory.createNewPost(title, text, authorTag);
         const savedPost = await this._postRepository.save(newPost);
-        const postView = this._postFactory.convertPostToDTO(savedPost);
-        return postView;
+        return { ...savedPost, likes: 0 };
     }
 
     public async editPost(
@@ -69,14 +68,13 @@ export class PostService {
         title: string | undefined,
         text: string | undefined,
         authorTag: string
-    ): Promise<PostView | PostNotFoundError | NotAllowedError> {
+    ): Promise<void | PostNotFoundError | NotAllowedError> {
         const post = await this._postRepository.findOne(id);
         if (post === null) return new PostNotFoundError();
         if (post.authorTag !== authorTag) return new NotAllowedError();
         if (title) post.title = title;
         if (text) post.text = text;
-        const savedPost = await this._postRepository.save(post);
-        return this._postFactory.convertPostToDTO(savedPost);
+        await this._postRepository.save(post);
     }
 
     public async deletePost(
@@ -91,6 +89,7 @@ export class PostService {
         if (!isDeleted) {
             return new NotAllowedError();
         } else {
+            await this._likeRepository.deleteLikesForPost(id);
             return null;
         }
     }
@@ -100,7 +99,7 @@ export class PostService {
         postId: PostId,
         userTag: string
     ): Promise<CommentView | PostNotFoundError> {
-        if (this._postRepository.findOne(postId) === null)
+        if ((await this._postRepository.findOne(postId)) === null)
             return new PostNotFoundError();
         const comment = this._commentFactory.createComment(
             text,
@@ -147,5 +146,9 @@ export class PostService {
         } else {
             return null;
         }
+    }
+
+    public async likePost(postId: number, userTag: string): Promise<number> {
+        return this._likeRepository.createOrDeleteLike(postId, userTag);
     }
 }

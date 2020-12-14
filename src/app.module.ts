@@ -22,10 +22,14 @@ import { UserModel } from './implementations/UserModel';
 import { PostModel } from './implementations/PostModel';
 import { CommentModel } from './implementations/CommentModel';
 import { createConnection, Connection } from 'typeorm';
+import { LikeRepository } from './implementations/LikeRepository';
+import { ILikeRepository } from './modules/posts/ILikeRepository';
+import { LikeModel } from './implementations/LikeModel';
 
 const UserRepositorySymbol = Symbol('UserRepository');
 const PostRepositorySymbol = Symbol('PostRepository');
 const CommentRepositorySymbol = Symbol('CommentRepository');
+const LikeRepositorySymbol = Symbol('LikeRepository');
 const HashingProviderSymbol = Symbol('HashingProvider');
 
 @Module({
@@ -47,10 +51,15 @@ const HashingProviderSymbol = Symbol('HashingProvider');
                 return createConnection({
                     type: 'sqlite',
                     database: './db.sqlite',
-                    entities: [UserModel, PostModel, CommentModel],
+                    entities: [UserModel, PostModel, CommentModel, LikeModel],
                     synchronize: process.env.NODE_ENV !== 'production',
                 });
             },
+        },
+        {
+            provide: LikeRepositorySymbol,
+            inject: [Connection],
+            useFactory: (con: Connection) => new LikeRepository(con),
         },
         {
             provide: UserRepositorySymbol,
@@ -94,18 +103,21 @@ const HashingProviderSymbol = Symbol('HashingProvider');
                 PostFactory,
                 CommentRepositorySymbol,
                 CommentFactory,
+                LikeRepositorySymbol,
             ],
             useFactory: (
                 postRepository: IPostRepository,
                 postFactory: PostFactory,
                 commentRepository: ICommentRepository,
-                commentFactory: CommentFactory
+                commentFactory: CommentFactory,
+                likeRepository: ILikeRepository
             ) => {
                 return new PostService(
                     postRepository,
                     postFactory,
                     commentRepository,
-                    commentFactory
+                    commentFactory,
+                    likeRepository
                 );
             },
         },

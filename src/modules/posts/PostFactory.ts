@@ -1,5 +1,4 @@
 import { PostId, PostEntity } from './PostEntity';
-import { PostView } from './PostView';
 
 export class PostFactory {
     public createPostFromDTO(
@@ -18,15 +17,5 @@ export class PostFactory {
         authorTag: string
     ): Omit<PostEntity, 'id'> {
         return { title, text, authorTag, createdAt: Date.now() };
-    }
-
-    public convertPostToDTO(post: PostEntity): PostView {
-        return {
-            id: post.id,
-            title: post.title,
-            text: post.text,
-            authorTag: post.authorTag,
-            createdAt: post.createdAt,
-        };
     }
 }

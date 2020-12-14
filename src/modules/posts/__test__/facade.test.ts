@@ -8,6 +8,8 @@ import { ICommentRepository } from '../ICommentRepository';
 import { PostFacade } from '../PostFacade';
 import { PostView } from '../PostView';
 import { NotAllowedError, PostNotFoundError } from '../errors';
+import { InMemoryLikeRepository } from '../../../implementations/InMemoryLikeRepository';
+import { ILikeRepository } from '../ILikeRepository';
 
 import faker from 'faker';
 
@@ -18,17 +20,20 @@ describe('Post module api test', () => {
     let commentFactory: CommentFactory;
     let service: PostService;
     let facade: PostFacade;
+    let likeRepository: ILikeRepository;
 
     beforeAll(() => {
         postRepository = new InMemoryPostRepository();
         commentRepository = new InMemoryCommentRepository();
         postFactory = new PostFactory();
         commentFactory = new CommentFactory();
+        likeRepository = new InMemoryLikeRepository();
         service = new PostService(
             postRepository,
             postFactory,
             commentRepository,
-            commentFactory
+            commentFactory,
+            likeRepository
         );
         facade = new PostFacade(service);
     });
@@ -84,19 +89,20 @@ describe('Post module api test', () => {
             });
 
             it('successfully edits a post', async () => {
-                let newTitle = faker.random.word();
+                const newTitle = faker.random.word();
 
-                let editedPost = await facade.editPost(
+                const err = await facade.editPost(
                     post.id,
                     newTitle,
                     undefined,
                     authorTag
                 );
+                const editedPost = await facade.getPostById(post.id);
 
-                expect(editedPost).not.toBeInstanceOf(Error);
-                expect(editedPost).not.toEqual(post);
-                expect((editedPost as PostView).title).toEqual(newTitle);
-                expect((editedPost as PostView).text).toEqual(text);
+                expect(err).not.toBeInstanceOf(Error);
+                expect(editedPost).not.toBeNull();
+                expect(editedPost?.title).toEqual(newTitle);
+                expect(editedPost?.text).not.toBeUndefined();
             });
         });
 
@@ -121,6 +127,45 @@ describe('Post module api test', () => {
                 const wrongAuthorTag = '@notanactualauthor';
                 const err = await facade.deletePost(post.id, wrongAuthorTag);
                 expect(err).toBeInstanceOf(NotAllowedError);
+            });
+        });
+
+        describe('likes', () => {
+            let post: PostView;
+            beforeEach(async () => {
+                const title = faker.random.word();
+                const text = faker.lorem.text();
+                const authorTag = '@' + faker.random.word();
+                post = await facade.createPost(title, text, authorTag);
+            });
+
+            it('likes a post', async () => {
+                const likes = await facade.likePost(post.id, post.authorTag);
+                const savedPost = await facade.getPostById(post.id);
+
+                expect(savedPost).not.toBeNull();
+                expect(savedPost!.likes).toEqual(1);
+                expect(likes).toEqual(1);
+            });
+
+            it('removes a like after two calls', async () => {
+                const firstLikes = await facade.likePost(
+                    post.id,
+                    post.authorTag
+                );
+                const secondLikes = await facade.likePost(
+                    post.id,
+                    post.authorTag
+                );
+                expect(firstLikes).not.toEqual(secondLikes);
+                expect(firstLikes).toEqual(1);
+                expect(secondLikes).toEqual(0);
+            });
+
+            it('gets a 0 on post with no likes', async () => {
+                const savedPost = await facade.getPostById(post.id);
+                expect(savedPost).not.toBeNull();
+                expect(savedPost!.likes).toEqual(0);
             });
         });
     });

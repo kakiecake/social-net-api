@@ -49,4 +49,8 @@ export class PostFacade {
     deleteComment(commentId: CommentId, authorTag: string) {
         return this._postService.deleteComment(commentId, authorTag);
     }
+
+    likePost(postId: PostId, userTag: string) {
+        return this._postService.likePost(postId, userTag);
+    }
 }

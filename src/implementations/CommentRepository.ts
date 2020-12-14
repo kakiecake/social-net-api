@@ -56,7 +56,9 @@ export class CommentRepository implements ICommentRepository {
         id: number,
         authorTag: string
     ): Promise<boolean> {
-        const result = await this._comments.delete({ id, authorTag });
-        return Boolean(result.affected);
+        const comment = await this._comments.findOne({ id, authorTag });
+        if (!comment) return false;
+        await this._comments.delete(comment);
+        return true;
     }
 }
