@@ -22,7 +22,7 @@ import { NotAllowedError, PostNotFoundError } from '../modules/posts/errors';
 export class PostController {
     constructor(private readonly _postFacade: PostFacade) {}
 
-    @Get('/:id')
+    @Get('/detail/:id')
     public async getPostWithComments(
         @Param('id') idParam: string
     ): Promise<ControllerResponse<PostDetailView>> {
@@ -34,12 +34,14 @@ export class PostController {
         else return [200, post];
     }
 
-    @UseGuards(AuthGuard)
-    @Get('/')
-    public async getPosts(
-        @User() user: string
+    @Get('/:userTag')
+    public async getPostsByUser(
+        @Param('userTag') userTag: string
     ): Promise<ControllerResponse<PostView[]>> {
-        const posts = await this._postFacade.getPostsByUser(user);
+        const isValidUserTag = (x: string) =>
+            x.startsWith('@') && x.length < 16;
+        if (!isValidUserTag(userTag)) return [400, 'Invalid user tag'];
+        const posts = await this._postFacade.getPostsByUser(userTag);
         return [200, posts];
     }
 
@@ -73,9 +75,9 @@ export class PostController {
     }
 
     @UseGuards(AuthGuard)
-    @Delete('/:id')
+    @Delete('/')
     public async deletePost(
-        @Param('id') idParam: string,
+        @Body('postId') idParam: string,
         @User() user: string
     ) {
         let id = Number(idParam);

@@ -1,5 +1,4 @@
 import { Controller, Post, Body, UseInterceptors } from '@nestjs/common';
-import { isUserTag } from '../modules/users/UserEntity';
 import { UserFacade } from '../modules/users/UserFacade';
 import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
 import { AuthHandler } from './AuthHandler';
@@ -18,6 +17,7 @@ export class UserController {
         @Body('fullName') fullName: string,
         @Body('password') password: string
     ) {
+        const isUserTag = (x: string) => x.startsWith('@') && x.length < 16;
         if (!isUserTag(tag)) return [400, 'Invalid user tag'];
         const user = await this._userFacade.registerUser(
             tag,

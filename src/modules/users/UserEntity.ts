@@ -1,6 +1,4 @@
 export type UserTag = string;
-export const isUserTag = (str: string): str is UserTag =>
-    str.startsWith('@') && str.length <= 16;
 
 export type UserEntity = {
     fullName: string;
