@@ -1,9 +1,13 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index } from 'typeorm';
 
 @Entity()
 export class LikeModel {
     @PrimaryColumn()
-    postId!: number;
+    id!: number;
+
+    @Index()
+    @Column()
+    type!: 'post' | 'comment';
 
     @Column()
     userTag!: string;

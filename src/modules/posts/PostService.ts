@@ -39,7 +39,21 @@ export class PostService {
             this._likeRepository.getLikesForPost(postId),
             this._commentRepository.getCommentsForPost(postId),
         ]);
-        return { ...post, likes, comments };
+        const commentLikes = await Promise.all(
+            comments.map(comment =>
+                this._likeRepository.getLikesForComment(comment.id)
+            )
+        );
+        const commentsWithLikes: CommentView[] = comments.map(
+            (comment, index) => ({
+                id: comment.id,
+                text: comment.text,
+                createdAt: comment.createdAt,
+                authorTag: comment.authorTag,
+                likes: commentLikes[index],
+            })
+        );
+        return { ...post, likes, comments: commentsWithLikes };
     }
 
     public async getPostsByUser(
@@ -47,8 +61,8 @@ export class PostService {
         limit?: number
     ): Promise<PostView[]> {
         const posts = await this._postRepository.getPostsByUser(userTag, limit);
-        const likes = await this._likeRepository.getLikesForMultiplePosts(
-            posts.map(post => post.id)
+        const likes = await Promise.all(
+            posts.map(post => this._likeRepository.getLikesForPost(post.id))
         );
         return posts.map((post, index) => ({ ...post, likes: likes[index] }));
     }
@@ -107,16 +121,31 @@ export class PostService {
             userTag
         );
         const savedComment = await this._commentRepository.save(comment);
-        return this._commentFactory.convertCommentToDTO(savedComment);
+        return {
+            id: savedComment.id,
+            text: savedComment.text,
+            authorTag: savedComment.authorTag,
+            createdAt: savedComment.createdAt,
+            likes: 0,
+        };
     }
 
     public async getCommentsForPost(postId: PostId): Promise<CommentView[]> {
         const comments = await this._commentRepository.getCommentsForPost(
             postId
         );
-        return comments.map(comment =>
-            this._commentFactory.convertCommentToDTO(comment)
+        const likes = await Promise.all(
+            comments.map(comment =>
+                this._likeRepository.getLikesForComment(comment.id)
+            )
         );
+        return comments.map((comment, index) => ({
+            id: comment.id,
+            text: comment.text,
+            authorTag: comment.authorTag,
+            createdAt: comment.createdAt,
+            likes: likes[index],
+        }));
     }
 
     public async editComment(
@@ -149,6 +178,13 @@ export class PostService {
     }
 
     public async likePost(postId: number, userTag: string): Promise<number> {
-        return this._likeRepository.createOrDeleteLike(postId, userTag);
+        return this._likeRepository.likePost(postId, userTag);
+    }
+
+    public async likeComment(
+        commentId: number,
+        userTag: string
+    ): Promise<number> {
+        return this._likeRepository.likeComment(commentId, userTag);
     }
 }

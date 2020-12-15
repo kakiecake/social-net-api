@@ -15,22 +15,13 @@ export class CommentFactory {
         };
     }
 
-    public convertCommentToDTO(comment: CommentEntity): CommentView {
-        return {
-            id: comment.id,
-            text: comment.text,
-            createdAt: comment.createdAt,
-            authorTag: comment.authorTag,
-        };
-    }
-
     public createCommentFromDTO(
         id: number,
         text: string,
         authorTag: string,
         postId: number,
         createdAt: number
-    ) {
+    ): CommentEntity {
         return { id, text, authorTag, postId, createdAt };
     }
 }

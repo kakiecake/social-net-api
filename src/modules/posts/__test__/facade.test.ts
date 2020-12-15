@@ -7,11 +7,16 @@ import { IPostRepository } from '../IPostRepository';
 import { ICommentRepository } from '../ICommentRepository';
 import { PostFacade } from '../PostFacade';
 import { PostView } from '../PostView';
-import { NotAllowedError, PostNotFoundError } from '../errors';
+import {
+    NotAllowedError,
+    PostNotFoundError,
+    CommentNotFoundError,
+} from '../errors';
 import { InMemoryLikeRepository } from '../../../implementations/InMemoryLikeRepository';
 import { ILikeRepository } from '../ILikeRepository';
 
 import faker from 'faker';
+import { CommentView } from '../CommentView';
 
 describe('Post module api test', () => {
     let postRepository: IPostRepository;
@@ -22,7 +27,7 @@ describe('Post module api test', () => {
     let facade: PostFacade;
     let likeRepository: ILikeRepository;
 
-    beforeAll(() => {
+    beforeEach(() => {
         postRepository = new InMemoryPostRepository();
         commentRepository = new InMemoryCommentRepository();
         postFactory = new PostFactory();
@@ -38,11 +43,127 @@ describe('Post module api test', () => {
         facade = new PostFacade(service);
     });
 
+    describe('CRUD on comments', () => {
+        let post: PostView;
+
+        beforeEach(async () => {
+            const title = faker.lorem.sentence();
+            const text = faker.lorem.text();
+            const authorTag = '@' + faker.random.word();
+            post = await facade.createPost(title, text, authorTag);
+        });
+
+        it('creates and gets a comment', async () => {
+            const userTag = '@' + faker.random.word();
+            const text = faker.lorem.text();
+
+            const comment = await facade.leaveComment(text, post.id, userTag);
+            const postComments = await facade.getCommentsForPost(post.id);
+
+            expect(comment).not.toBeInstanceOf(PostNotFoundError);
+            expect(postComments).toContainEqual(comment as CommentView);
+        });
+
+        describe('Delete a comment', () => {
+            let comment: CommentView, authorTag: string;
+            beforeEach(async () => {
+                const text = faker.lorem.text();
+                authorTag = '@' + faker.random.word();
+                comment = (await facade.leaveComment(
+                    text,
+                    post.id,
+                    authorTag
+                )) as CommentView;
+            });
+
+            it("doesn't delete comment if user tag doesn't match author tag", async () => {
+                const notAnAuthorTag = '@obviouslynotanauthor';
+
+                const err = await facade.deleteComment(
+                    comment.id!,
+                    notAnAuthorTag
+                );
+                const comments = await facade.getCommentsForPost(post.id);
+
+                expect(err).toBeInstanceOf(NotAllowedError);
+                expect(comments).toContainEqual(comment);
+            });
+
+            it('successfully deletes comment', async () => {
+                const err = await facade.deleteComment(comment.id!, authorTag);
+                const comments = await facade.getCommentsForPost(post.id);
+
+                expect(err).toBeNull();
+                expect(comments).not.toContainEqual(comment);
+            });
+        });
+
+        describe('Edit a comment', () => {
+            let comment: CommentView, authorTag: string;
+            beforeEach(async () => {
+                const text = faker.lorem.text();
+                authorTag = '@' + faker.random.word();
+                comment = (await facade.leaveComment(
+                    text,
+                    post.id,
+                    authorTag
+                )) as CommentView;
+            });
+
+            it('successfully edits a comment', async () => {
+                const newText = faker.lorem.text();
+
+                const err = await facade.editComment(
+                    newText,
+                    comment.id!,
+                    authorTag
+                );
+                const comments = await facade.getCommentsForPost(post.id);
+                const editedComment = comments.find(x => x.id === comment.id);
+
+                expect(err).toBeNull();
+                expect(comments).not.toContainEqual(comment);
+                expect(editedComment).not.toBeUndefined();
+                expect(editedComment!.text).toEqual(newText);
+            });
+
+            it('returns CommentNotFoundError on no comment', async () => {
+                const newText = faker.lorem.text();
+                const wrongCommentId = 13123;
+
+                const err = await facade.editComment(
+                    newText,
+                    wrongCommentId,
+                    authorTag
+                );
+                const comments = await facade.getCommentsForPost(post.id);
+
+                expect(err).toBeInstanceOf(CommentNotFoundError);
+                expect(comments).toContainEqual(comment);
+            });
+
+            it('returns NotAllowedError if called with wrong authorTag', async () => {
+                const newText = faker.lorem.text();
+                const wrongAuthorTag = '@notanactualauthor';
+
+                const err = await facade.editComment(
+                    newText,
+                    comment.id!,
+                    wrongAuthorTag
+                );
+                const comments = await facade.getCommentsForPost(post.id);
+
+                expect(err).toBeInstanceOf(NotAllowedError);
+                expect(comments).toContainEqual(comment);
+            });
+        });
+    });
+
     describe('CRUD on posts', () => {
         describe('Create and get a post', () => {
-            let title = faker.random.word();
-            let text = faker.lorem.text();
-            let authorTag = '@' + faker.random.word();
+            const title = faker.random.word();
+            const text = faker.lorem.text();
+            const authorTag = '@' + faker.random.word();
 
             it('returns null if post does not exist', async () => {
                 const wrongPostId = 2000;
@@ -129,16 +250,18 @@ describe('Post module api test', () => {
                 expect(err).toBeInstanceOf(NotAllowedError);
             });
         });
+    });
 
-        describe('likes', () => {
-            let post: PostView;
-            beforeEach(async () => {
-                const title = faker.random.word();
-                const text = faker.lorem.text();
-                const authorTag = '@' + faker.random.word();
-                post = await facade.createPost(title, text, authorTag);
-            });
+    describe('Likes', () => {
+        let post: PostView;
+        beforeEach(async () => {
+            const title = faker.random.word();
+            const text = faker.lorem.text();
+            const authorTag = '@' + faker.random.word();
+            post = await facade.createPost(title, text, authorTag);
+        });
 
+        describe('Post likes', () => {
             it('likes a post', async () => {
                 const likes = await facade.likePost(post.id, post.authorTag);
                 const savedPost = await facade.getPostById(post.id);
@@ -166,6 +289,47 @@ describe('Post module api test', () => {
                 const savedPost = await facade.getPostById(post.id);
                 expect(savedPost).not.toBeNull();
                 expect(savedPost!.likes).toEqual(0);
+            });
+        });
+
+        describe('Comment likes', () => {
+            let comment: CommentView, userTag: string;
+            beforeEach(async () => {
+                const text = faker.lorem.text();
+                userTag = '@' + faker.internet.userName();
+                comment = (await facade.leaveComment(
+                    text,
+                    post.id,
+                    userTag
+                )) as CommentView;
+            });
+
+            it('likes comment', async () => {
+                const likes = await facade.likeComment(comment.id!, userTag);
+
+                expect(likes).toEqual(1);
+            });
+
+            it('removes a like after two calls', async () => {
+                const firstLikes = await facade.likeComment(
+                    comment.id!,
+                    userTag
+                );
+                const secondLikes = await facade.likeComment(
+                    comment.id!,
+                    userTag
+                );
+
+                expect(firstLikes).not.toEqual(secondLikes);
+                expect(firstLikes).toEqual(1);
+                expect(secondLikes).toEqual(0);
+            });
+
+            it('gets a 0 on comment with no likes', async () => {
+                const comments = await facade.getCommentsForPost(post.id);
+                const likedComment = comments.find(x => x.id === comment.id);
+
+                expect(likedComment?.likes).toEqual(0);
             });
         });
     });

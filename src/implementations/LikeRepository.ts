@@ -9,33 +9,49 @@ export class LikeRepository implements ILikeRepository {
         this._likes = connection.getRepository(LikeModel);
     }
 
-    public async createOrDeleteLike(
-        postId: number,
+    public async likePost(postId: number, userTag: string): Promise<number> {
+        return this._like(postId, userTag, 'post');
+    }
+
+    public async likeComment(
+        commentId: number,
         userTag: string
     ): Promise<number> {
-        const like = await this._likes.findOne({ postId, userTag });
+        return this._like(commentId, userTag, 'comment');
+    }
+
+    private async _like(
+        postId: number,
+        userTag: string,
+        type: LikeModel['type']
+    ): Promise<number> {
+        const like = await this._likes.findOne({
+            type,
+            id: postId,
+            userTag,
+        });
+
         if (like) {
-            await this._likes.delete({ postId: like.postId });
+            await this._likes.delete(like);
         } else {
-            await this._likes.save({ postId, userTag });
+            await this._likes.save({ type, id: postId, userTag });
         }
-        return this._likes.count({ postId });
+        return this._likes.count({ type, id: postId });
     }
 
     public getLikesForPost(postId: number): Promise<number> {
-        return this._likes.count({ postId });
+        return this._likes.count({ type: 'post', id: postId });
     }
 
-    public async getLikesForMultiplePosts(
-        postIds: number[]
-    ): Promise<number[]> {
-        // in future this should perform 1 request
-        return Promise.all(
-            postIds.map(postId => this._likes.count({ postId }))
-        );
+    public getLikesForComment(commentId: number): Promise<number> {
+        return this._likes.count({ type: 'comment', id: commentId });
     }
 
     public async deleteLikesForPost(postId: number): Promise<void> {
-        await this._likes.delete({ postId });
+        await this._likes.delete({ type: 'post', id: postId });
+    }
+
+    public async deleteLikesForComment(commentId: number): Promise<void> {
+        await this._likes.delete({ type: 'comment', id: commentId });
     }
 }

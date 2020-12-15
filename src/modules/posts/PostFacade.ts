@@ -53,4 +53,8 @@ export class PostFacade {
     likePost(postId: PostId, userTag: string) {
         return this._postService.likePost(postId, userTag);
     }
+
+    likeComment(commentId: CommentId, userTag: string) {
+        return this._postService.likeComment(commentId, userTag);
+    }
 }

@@ -3,4 +3,5 @@ export type CommentView = {
     text: string;
     authorTag: string;
     createdAt: number;
+    likes: number;
 };

@@ -71,4 +71,17 @@ export class CommentController {
             return [404, 'Comment not found'];
         else return [200, null];
     }
+
+    @UseGuards(AuthGuard)
+    @Post('/like')
+    public async likeComment(
+        @Body('commentId') commentIdParam: string,
+        @User() userTag: string
+    ) {
+        const commentId = Number(commentIdParam);
+        if (isNaN(commentId)) return [400, 'Invalid commentId parameter'];
+
+        const likes = await this._postFacade.likeComment(commentId, userTag);
+        return [200, likes];
+    }
 }
