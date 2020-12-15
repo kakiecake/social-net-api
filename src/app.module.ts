@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HTTPResponseInterceptor } from './controllers/HTTPResponseInterceptor';
 import { CommentController } from './controllers/CommentController';
 import { PostController } from './controllers/PostController';
@@ -25,6 +26,7 @@ import { createConnection, Connection } from 'typeorm';
 import { LikeRepository } from './implementations/LikeRepository';
 import { ILikeRepository } from './modules/posts/ILikeRepository';
 import { LikeModel } from './implementations/LikeModel';
+import config from './config';
 
 const UserRepositorySymbol = Symbol('UserRepository');
 const PostRepositorySymbol = Symbol('PostRepository');
@@ -33,6 +35,11 @@ const LikeRepositorySymbol = Symbol('LikeRepository');
 const HashingProviderSymbol = Symbol('HashingProvider');
 
 @Module({
+    imports: [
+        ConfigModule.forRoot({
+            load: [config],
+        }),
+    ],
     controllers: [PostController, UserController, CommentController],
     providers: [
         HTTPResponseInterceptor,
@@ -141,8 +148,11 @@ const HashingProviderSymbol = Symbol('HashingProvider');
         },
         {
             provide: AuthHandler,
-            useFactory: () => {
-                return new AuthHandler('~privateKey~', 60);
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => {
+                const privateKey = config.get('jwt.privateKey');
+                const expiration = config.get('jwt.expiration');
+                return new AuthHandler(privateKey, expiration);
             },
         },
     ],
