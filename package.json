@@ -1,8 +1,8 @@
 {
   "name": "node-social-net",
-  "version": "0.0.1",
-  "description": "Simple node.js social net application",
-  "main": "src/index.ts",
+  "version": "1.0.0",
+  "description": "Simple Node.js social net API using Nest.js",
+  "main": "build/index.js",
   "author": "Stepan Fedorov <huanandeluxe@yandex.ru>",
   "license": "MIT",
   "dependencies": {
