@@ -24,6 +24,14 @@ export class UserController {
         private readonly _subscriptionFacade: SubscriptionFacade
     ) {}
 
+    @Get('/:userTag')
+    public async getUserInfo(@Param('userTag') userTag: string) {
+        if (!isUserTag(userTag)) return [400, 'Invalid user tag'];
+        const info = await this._userFacade.getUserInfo(userTag);
+        if (info === null) return [404, 'User not found'];
+        else return [200, info];
+    }
+
     @Post('/register')
     public async register(
         @Body('tag') tag: string,
@@ -31,13 +39,13 @@ export class UserController {
         @Body('password') password: string
     ) {
         if (!isUserTag(tag)) return [400, 'Invalid user tag'];
-        const user = await this._userFacade.registerUser(
+        const success = await this._userFacade.registerUser(
             tag,
             fullName,
             password
         );
-        if (user instanceof Error) return [400, 'Tag is occupied'];
-        return [200, user];
+        if (success) return [400, 'Tag is occupied'];
+        else return [200, null];
     }
 
     @Post('/login')
@@ -46,8 +54,8 @@ export class UserController {
         @Body('password') password: string
     ) {
         const user = await this._userFacade.loginUser(tag, password);
-        if (user === null) return [404, 'User not found'];
-        const token = this._authHandler.createSessionToken(user.tag);
+        if (user === null) return [404, 'Invalid login/password combination'];
+        const token = this._authHandler.createSessionToken(tag);
         return [200, token];
     }
 

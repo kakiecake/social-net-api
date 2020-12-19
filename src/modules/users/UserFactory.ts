@@ -1,5 +1,4 @@
 import { UserTag, UserEntity } from './UserEntity';
-import { UserView } from './UserView';
 
 export interface IHashingProvider {
     generateSalt(): string;
@@ -23,14 +22,6 @@ export class UserFactory {
             passwordSalt,
             passwordHash,
             createdAt,
-        };
-    }
-
-    public convertUserToDTO(user: UserEntity): UserView {
-        return {
-            tag: user.tag,
-            fullName: user.fullName,
-            createdAt: user.createdAt,
         };
     }
 

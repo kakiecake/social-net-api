@@ -3,19 +3,31 @@ import { UserFactory } from '../UserFactory';
 import { SHA256HashingProvider } from '../../../implementations/SHA256HashingProvider';
 import { InMemoryUserRepository } from '../../../implementations/InMemoryUserRepository';
 import { UserFacade } from '../UserFacade';
+import { SubscriptionFacade } from '../../subscriptions/SubscriptionFacade';
 
 import faker from 'faker';
+import { mock, anything, when, instance } from 'ts-mockito';
 
 describe('Users module API tests', () => {
     let facade: UserFacade;
     beforeEach(() => {
+        const SubscriptionFacadeMock = mock(SubscriptionFacade);
+        when(SubscriptionFacadeMock.getSubscriberCount(anything())).thenResolve(
+            10
+        );
+        when(
+            SubscriptionFacadeMock.getSubscribtionCount(anything())
+        ).thenResolve(10);
+
+        const subscriptionsModule = instance(SubscriptionFacadeMock);
         const hashingProvider = new SHA256HashingProvider();
         const factory = new UserFactory(hashingProvider);
         const repository = new InMemoryUserRepository();
         const userService = new UserService(
             factory,
             repository,
-            hashingProvider
+            hashingProvider,
+            subscriptionsModule
         );
         facade = new UserFacade(userService);
     });
@@ -29,18 +41,32 @@ describe('Users module API tests', () => {
         });
 
         it('registers and logs in user without errors', async () => {
-            const user1 = await facade.registerUser(tag, fullName, password);
-            const user2 = await facade.loginUser(tag, password);
-
-            expect(user1).not.toBeInstanceOf(Error);
-            expect(user2).not.toBeNull();
-            expect(user1).toEqual(user2);
-            expect(user1).not.toBe(user2);
+            const registerSuccess = await facade.registerUser(
+                tag,
+                fullName,
+                password
+            );
+            const loginSuccess = await facade.loginUser(tag, password);
+            expect(registerSuccess).toBe(true);
+            expect(loginSuccess).toBe(true);
         });
 
-        it('returns null if user does not exist during login', async () => {
-            const user = await facade.loginUser(tag, password);
-            expect(user).toBeNull();
+        it('fails if user does not exist during login', async () => {
+            const success = await facade.loginUser(tag, password);
+            expect(success).toBe(false);
+        });
+
+        it('gets a user info', async () => {
+            const success = await facade.registerUser(tag, fullName, password);
+            const userInfo = await facade.getUserInfo(tag);
+
+            expect(success).toBe(true);
+            expect(userInfo).not.toBeNull();
+            expect(userInfo!.subscriptions).toEqual(10);
+            expect(userInfo!.subscribers).toEqual(10);
+            expect(userInfo!.fullName).toEqual(fullName);
+            expect(userInfo!.tag).toEqual(tag);
+            expect(userInfo!.createdAt).toBeLessThan(Date.now());
         });
     });
 });
