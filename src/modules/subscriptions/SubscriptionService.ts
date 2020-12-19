@@ -8,11 +8,11 @@ export class SubscriptionService {
     ) {}
 
     async subscribe(userTag: string, subscribeToTag: string): Promise<boolean> {
-        const [firstUserExists, secondUserExists] = await Promise.all([
-            this._usersModule.doesUserExist(userTag),
-            this._usersModule.doesUserExist(subscribeToTag),
-        ]);
-        if (!firstUserExists || !secondUserExists) return false;
+        // userTag always points to an existing user
+        const userExists = await this._usersModule.doesUserExist(
+            subscribeToTag
+        );
+        if (userExists === false) return false;
         return this._subscriptionRepository.addSubcription(
             userTag,
             subscribeToTag
