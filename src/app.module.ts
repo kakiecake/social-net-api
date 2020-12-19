@@ -27,12 +27,18 @@ import { LikeRepository } from './implementations/LikeRepository';
 import { ILikeRepository } from './modules/posts/ILikeRepository';
 import { LikeModel } from './implementations/LikeModel';
 import config from './config';
+import { SubscriptionRepository } from './implementations/SubscriptionRepository';
+import { SubscriptionFacade } from './modules/subscriptions/SubscriptionFacade';
+import { SubscriptionService } from './modules/subscriptions/SubscriptionService';
+import { ISubscriptionRepository } from './modules/subscriptions/ISubscriptionRepository';
+import { SubscriptionModel } from './implementations/SubscriptionModel';
 
 const UserRepositorySymbol = Symbol('UserRepository');
 const PostRepositorySymbol = Symbol('PostRepository');
 const CommentRepositorySymbol = Symbol('CommentRepository');
 const LikeRepositorySymbol = Symbol('LikeRepository');
 const HashingProviderSymbol = Symbol('HashingProvider');
+const SubscriptionRepositorySymbol = Symbol('SubscriptionRepository');
 
 @Module({
     imports: [
@@ -58,7 +64,13 @@ const HashingProviderSymbol = Symbol('HashingProvider');
                 return createConnection({
                     type: 'sqlite',
                     database: './db.sqlite',
-                    entities: [UserModel, PostModel, CommentModel, LikeModel],
+                    entities: [
+                        UserModel,
+                        PostModel,
+                        CommentModel,
+                        LikeModel,
+                        SubscriptionModel,
+                    ],
                     synchronize: process.env.NODE_ENV !== 'production',
                 });
             },
@@ -85,6 +97,19 @@ const HashingProviderSymbol = Symbol('HashingProvider');
             inject: [Connection, PostFactory],
             useFactory: (connection: Connection, factory: PostFactory) =>
                 new PostRepository(factory, connection),
+        },
+        {
+            provide: SubscriptionRepositorySymbol,
+            inject: [Connection],
+            useFactory: (con: Connection) => new SubscriptionRepository(con),
+        },
+        {
+            provide: SubscriptionService,
+            inject: [SubscriptionRepositorySymbol, UserFacade],
+            useFactory: (
+                repository: ISubscriptionRepository,
+                users: UserFacade
+            ) => new SubscriptionService(repository, users),
         },
         {
             provide: UserService,
@@ -118,15 +143,14 @@ const HashingProviderSymbol = Symbol('HashingProvider');
                 commentRepository: ICommentRepository,
                 commentFactory: CommentFactory,
                 likeRepository: ILikeRepository
-            ) => {
-                return new PostService(
+            ) =>
+                new PostService(
                     postRepository,
                     postFactory,
                     commentRepository,
                     commentFactory,
                     likeRepository
-                );
-            },
+                ),
         },
         {
             provide: AuthGuard,
@@ -145,6 +169,12 @@ const HashingProviderSymbol = Symbol('HashingProvider');
             inject: [PostService],
             useFactory: (postService: PostService) =>
                 new PostFacade(postService),
+        },
+        {
+            provide: SubscriptionFacade,
+            inject: [SubscriptionService],
+            useFactory: (service: SubscriptionService) =>
+                new SubscriptionFacade(service),
         },
         {
             provide: AuthHandler,
