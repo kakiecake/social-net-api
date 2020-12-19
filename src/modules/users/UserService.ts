@@ -40,4 +40,8 @@ export class UserService {
             return null;
         }
     }
+
+    async doesUserExist(tag: UserTag): Promise<boolean> {
+        return Boolean(this._userRepository.findOne(tag));
+    }
 }

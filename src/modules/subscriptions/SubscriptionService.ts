@@ -1,11 +1,18 @@
 import { ISubscriptionRepository } from './ISubscriptionRepository';
+import { UserFacade } from '../users/UserFacade';
 
 export class SubscriptionService {
     constructor(
-        private readonly _subscriptionRepository: ISubscriptionRepository
+        private readonly _subscriptionRepository: ISubscriptionRepository,
+        private readonly _usersModule: UserFacade
     ) {}
 
     async subscribe(userTag: string, subscribeToTag: string): Promise<boolean> {
+        const [firstUserExists, secondUserExists] = await Promise.all([
+            this._usersModule.doesUserExist(userTag),
+            this._usersModule.doesUserExist(subscribeToTag),
+        ]);
+        if (!firstUserExists || !secondUserExists) return false;
         return this._subscriptionRepository.addSubcription(
             userTag,
             subscribeToTag

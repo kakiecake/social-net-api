@@ -11,4 +11,8 @@ export class UserFacade {
     loginUser(tag: UserTag, password: string) {
         return this._userService.loginUser(tag, password);
     }
+
+    doesUserExist(tag: UserTag): Promise<boolean> {
+        return this._userService.doesUserExist(tag);
+    }
 }

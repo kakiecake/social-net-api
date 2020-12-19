@@ -15,6 +15,10 @@ export class UserRepository implements IUserRepository {
         this._users = connection.getRepository(UserModel);
     }
 
+    public async doesUserExist(tag: string): Promise<boolean> {
+        return Boolean(await this._users.findOne(tag));
+    }
+
     public async findOne(tag: string): Promise<UserEntity | null> {
         const user = await this._users.findOne(tag);
         if (!user) return null;
