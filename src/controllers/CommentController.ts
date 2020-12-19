@@ -4,17 +4,16 @@ import {
     Body,
     UseGuards,
     Delete,
-    Patch,
     UseInterceptors,
+    Param,
+    Put,
 } from '@nestjs/common';
 import { User, AuthGuard } from './AuthGuard';
-import {
-    PostNotFoundError,
-    NotAllowedError,
-    CommentNotFoundError,
-} from '../modules/posts/errors';
+import { NotAllowedError, CommentNotFoundError } from '../modules/posts/errors';
 import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
 import { PostFacade } from '../modules/posts/PostFacade';
+import { CommentIdParams } from './dto/CommentIdParams';
+import { EditCommentDTO } from './dto/EditCommentDTO';
 
 @UseInterceptors(HTTPResponseInterceptor)
 @Controller('/comments')
@@ -22,50 +21,31 @@ export class CommentController {
     constructor(private readonly _postFacade: PostFacade) {}
 
     @UseGuards(AuthGuard)
-    @Post('/')
-    public async createComment(
-        @Body('text') text: string,
-        @Body('postId') postIdParam: string,
+    @Delete('/:commentId')
+    public async deleteComment(
+        @Param() params: CommentIdParams,
         @User() userTag: string
     ) {
-        const postId = Number(postIdParam);
-        if (isNaN(postId)) return [400, 'Invalid postId parameter'];
-
-        const comment = await this._postFacade.leaveComment(
-            text,
-            postId,
+        const err = await this._postFacade.deleteComment(
+            params.commentId,
             userTag
         );
-        if (comment instanceof PostNotFoundError)
-            return [404, 'Post not found'];
-        else return [200, comment];
-    }
-
-    @UseGuards(AuthGuard)
-    @Delete('/')
-    public async deleteComment(
-        @Body('commentId') commentIdParam: string,
-        @User() userTag: string
-    ) {
-        const commentId = Number(commentIdParam);
-        if (isNaN(commentId)) return [400, 'Invalid commentId parameter'];
-
-        if ((await this._postFacade.deleteComment(commentId, userTag)) === null)
-            return [200, null];
+        if (err == null) return [200, null];
         else return [403, 'Forbidden'];
     }
 
     @UseGuards(AuthGuard)
-    @Patch('/')
+    @Put('/:commentId')
     public async editComment(
-        @Body('commentId') commentIdParam: string,
-        @Body('text') text: string,
+        @Param('commentId') params: CommentIdParams,
+        @Body() body: EditCommentDTO,
         @User() userTag: string
     ) {
-        const commentId = Number(commentIdParam);
-        if (isNaN(commentId)) return [400, 'Invalid commentId parameter'];
-
-        const err = this._postFacade.editComment(text, commentId, userTag);
+        const err = this._postFacade.editComment(
+            body.text,
+            params.commentId,
+            userTag
+        );
         if (err instanceof NotAllowedError) return [403, 'Forbidden'];
         else if (err instanceof CommentNotFoundError)
             return [404, 'Comment not found'];
@@ -73,15 +53,15 @@ export class CommentController {
     }
 
     @UseGuards(AuthGuard)
-    @Post('/like')
+    @Post('/:commentId/like')
     public async likeComment(
-        @Body('commentId') commentIdParam: string,
+        @Param('commentId') params: CommentIdParams,
         @User() userTag: string
     ) {
-        const commentId = Number(commentIdParam);
-        if (isNaN(commentId)) return [400, 'Invalid commentId parameter'];
-
-        const likes = await this._postFacade.likeComment(commentId, userTag);
+        const likes = await this._postFacade.likeComment(
+            params.commentId,
+            userTag
+        );
         return [200, likes];
     }
 }

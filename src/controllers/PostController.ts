@@ -6,8 +6,8 @@ import {
     Body,
     Delete,
     Param,
-    Patch,
     UseInterceptors,
+    Put,
 } from '@nestjs/common';
 import { AuthGuard, User } from './AuthGuard';
 import { PostFacade } from '../modules/posts/PostFacade';
@@ -16,86 +16,94 @@ import { PostDetailView } from '../modules/posts/PostDetailView';
 import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
 import { ControllerResponse } from './ApiResponse';
 import { NotAllowedError, PostNotFoundError } from '../modules/posts/errors';
+import { PostIdParams } from './dto/PostIdParams';
+import { UserTagParams } from './dto/UserTagParams';
+import { CreatePostDTO } from './dto/CreatePostDTO';
+import { EditPostDTO } from './dto/EditPostDTO';
+import { CreateCommentDTO } from './dto/CreateCommentDTO';
 
 @UseInterceptors(HTTPResponseInterceptor)
 @Controller('/posts')
 export class PostController {
     constructor(private readonly _postFacade: PostFacade) {}
 
-    @Get('/detail/:id')
+    @Get('/:postId')
     public async getPostWithComments(
-        @Param('id') idParam: string
+        @Param() params: PostIdParams
     ): Promise<ControllerResponse<PostDetailView>> {
-        let id = Number(idParam);
-        if (isNaN(id)) return [400, 'Invalid ID parameter'];
-
-        const post = await this._postFacade.getPostWithComments(id);
+        const post = await this._postFacade.getPostWithComments(params.postId);
         if (!post) return [404, 'Post not found'];
         else return [200, post];
     }
 
-    @Get('/:userTag')
+    @Get('/byUser/:userTag')
     public async getPostsByUser(
-        @Param('userTag') userTag: string
+        @Param() params: UserTagParams
     ): Promise<ControllerResponse<PostView[]>> {
-        const isValidUserTag = (x: string) =>
-            x.startsWith('@') && x.length < 16;
-        if (!isValidUserTag(userTag)) return [400, 'Invalid user tag'];
-        const posts = await this._postFacade.getPostsByUser(userTag);
+        const posts = await this._postFacade.getPostsByUser(params.userTag);
         return [200, posts];
     }
 
     @UseGuards(AuthGuard)
     @Post('/')
     public async createPost(
-        @Body('title') title: string,
-        @Body('text') text: string,
-        @User() user: string
+        @Body() body: CreatePostDTO,
+        @User() userTag: string
     ): Promise<ControllerResponse<PostView>> {
-        const post = await this._postFacade.createPost(title, text, user);
+        const post = await this._postFacade.createPost(
+            body.title,
+            body.text,
+            userTag
+        );
         return [200, post];
     }
 
     @UseGuards(AuthGuard)
-    @Patch('/')
-    public async editPost(
-        @User() user: string,
-        @Body('id') idParam: string,
-        @Body('title') title?: string,
-        @Body('text') text?: string
-    ) {
-        const id = Number(idParam);
-        if (isNaN(id)) return [400, 'Invalid ID parameter'];
-        if (!title && !text) return [400, 'Title or text must be provided'];
-
-        const post = await this._postFacade.editPost(id, title, text, user);
+    @Put('/')
+    public async editPost(@Body() body: EditPostDTO, @User() userTag: string) {
+        const post = await this._postFacade.editPost(
+            body.id,
+            body.title,
+            body.text,
+            userTag
+        );
         if (post instanceof NotAllowedError) return [403, 'Forbidden'];
         if (post instanceof PostNotFoundError) return [404, 'Post not found'];
         return [200, null];
     }
 
     @UseGuards(AuthGuard)
-    @Delete('/')
+    @Delete('/:postId')
     public async deletePost(
-        @Body('postId') idParam: string,
-        @User() user: string
+        @Param() params: PostIdParams,
+        @User() userTag: string
     ) {
-        let id = Number(idParam);
-        if (isNaN(id)) return [400, 'Invalid ID parameter'];
-        const err = await this._postFacade.deletePost(id, user);
+        const err = await this._postFacade.deletePost(params.postId, userTag);
         if (err) return [403, 'Forbidden'];
         else return [200, null];
     }
 
     @UseGuards(AuthGuard)
-    @Post('/like')
-    public async likePost(
-        @Body('postId') postIdParam: string,
-        @User() user: string
-    ) {
-        const postId = Number(postIdParam);
-        if (isNaN(postId)) return [400, 'Invalid postId parameter'];
-        const likes = await this._postFacade.likePost(postId, user);
+    @Post('/:postId/like')
+    public async likePost(@Param() params: PostIdParams, @User() user: string) {
+        const likes = await this._postFacade.likePost(params.postId, user);
         return [200, likes];
+    }
+
+    @UseGuards(AuthGuard)
+    @Post('/:postId/comment')
+    public async commentPost(
+        @Body() body: CreateCommentDTO,
+        @Param() params: PostIdParams,
+        @User() userTag: string
+    ) {
+        const comment = await this._postFacade.leaveComment(
+            body.text,
+            params.postId,
+            userTag
+        );
+        if (comment instanceof PostNotFoundError)
+            return [404, 'Post not found'];
+        else return [200, comment];
     }
 }

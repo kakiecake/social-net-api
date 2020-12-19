@@ -12,8 +12,9 @@ import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
 import { AuthHandler } from './AuthHandler';
 import { SubscriptionFacade } from '../modules/subscriptions/SubscriptionFacade';
 import { User, AuthGuard } from './AuthGuard';
-
-const isUserTag = (x: string) => x.startsWith('@') && x.length < 16;
+import { RegisterUserDTO } from './dto/RegisterUserDTO';
+import { UserTagParams } from './dto/UserTagParams';
+import { LoginUserDTO } from './dto/LoginUserDTO';
 
 @UseInterceptors(HTTPResponseInterceptor)
 @Controller('/users')
@@ -25,77 +26,72 @@ export class UserController {
     ) {}
 
     @Get('/:userTag')
-    public async getUserInfo(@Param('userTag') userTag: string) {
-        if (!isUserTag(userTag)) return [400, 'Invalid user tag'];
-        const info = await this._userFacade.getUserInfo(userTag);
+    public async getUserInfo(@Param() params: UserTagParams) {
+        const info = await this._userFacade.getUserInfo(params.userTag);
         if (info === null) return [404, 'User not found'];
         else return [200, info];
     }
 
     @Post('/register')
-    public async register(
-        @Body('tag') tag: string,
-        @Body('fullName') fullName: string,
-        @Body('password') password: string
-    ) {
-        if (!isUserTag(tag)) return [400, 'Invalid user tag'];
+    public async register(dto: RegisterUserDTO) {
         const success = await this._userFacade.registerUser(
-            tag,
-            fullName,
-            password
+            dto.tag,
+            dto.fullName,
+            dto.password
         );
         if (success) return [400, 'Tag is occupied'];
         else return [200, null];
     }
 
     @Post('/login')
-    public async login(
-        @Body('tag') tag: string,
-        @Body('password') password: string
-    ) {
-        const user = await this._userFacade.loginUser(tag, password);
+    public async login(@Body() body: LoginUserDTO) {
+        const user = await this._userFacade.loginUser(body.tag, body.password);
         if (user === null) return [404, 'Invalid login/password combination'];
-        const token = this._authHandler.createSessionToken(tag);
+        const token = this._authHandler.createSessionToken(body.tag);
         return [200, token];
     }
 
     @Get('/:userTag/subscribers')
-    public async getSubscribers(@Param('userTag') userTag: string) {
-        const subs = await this._subscriptionFacade.getSubscribers(userTag);
+    public async getSubscribers(@Param() params: UserTagParams) {
+        const subs = await this._subscriptionFacade.getSubscribers(
+            params.userTag
+        );
         return [200, subs];
     }
 
     @Get('/:userTag/subscriptions')
-    public async getSubscriptions(@Param('userTag') userTag: string) {
-        const subs = await this._subscriptionFacade.getSubscribtions(userTag);
+    public async getSubscriptions(@Param() params: UserTagParams) {
+        const subs = await this._subscriptionFacade.getSubscribtions(
+            params.userTag
+        );
         return [200, subs];
     }
 
     @UseGuards(AuthGuard)
-    @Post('/:subscribeToTag/subscribe')
+    @Post('/:userTag/subscribe')
     public async subscribe(
-        @Param('subscribeToTag') subscribeToTag: string,
+        @Param() params: UserTagParams,
         @User() userTag: string
     ) {
-        if (userTag === subscribeToTag) return [400, 'User tags are equal'];
+        if (userTag === params.userTag) return [400, 'User tags are equal'];
         const success = await this._subscriptionFacade.subscribe(
             userTag,
-            subscribeToTag
+            params.userTag
         );
         if (!success) return [400, 'Already subscribed'];
         return [200, null];
     }
 
     @UseGuards(AuthGuard)
-    @Post('/:subscribeToTag/subscribe')
+    @Post('/:userTag/subscribe')
     public async unsubscribe(
-        @Param('subscribeToTag') subscribeToTag: string,
+        @Param('subscribeToTag') params: UserTagParams,
         @User() userTag: string
     ) {
-        if (userTag === subscribeToTag) return [400, 'User tags are equal'];
+        if (userTag === params.userTag) return [400, 'User tags are equal'];
         const success = await this._subscriptionFacade.unsubscribe(
             userTag,
-            subscribeToTag
+            params.userTag
         );
         if (!success) return [400, 'Already unsubscribed'];
         return [200, null];
