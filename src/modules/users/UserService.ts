@@ -1,5 +1,5 @@
-import { UserTag } from './UserEntity';
-import { UserFactory, IHashingProvider } from './UserFactory';
+import { UserTag, UserEntity } from './UserEntity';
+import { IHashingProvider } from './UserFactory';
 import { UserView } from './UserView';
 import { IUserRepository } from './IUserRepository';
 import { SubscriptionFacade } from '../subscriptions/SubscriptionFacade';
@@ -9,7 +9,6 @@ export type UserNotFoundError = Error;
 
 export class UserService {
     constructor(
-        private readonly _userFactory: UserFactory,
         private readonly _userRepository: IUserRepository,
         private readonly _hashingProvider: IHashingProvider,
         private readonly _subscriptions: SubscriptionFacade
@@ -21,7 +20,19 @@ export class UserService {
         password: string
     ): Promise<boolean> {
         if ((await this._userRepository.findOne(tag)) !== null) return false;
-        const user = this._userFactory.createNewUser(fullName, tag, password);
+
+        const passwordSalt = this._hashingProvider.generateSalt();
+        const passwordHash = this._hashingProvider.hash(password, passwordSalt);
+        const createdAt = Date.now();
+
+        const user: UserEntity = {
+            tag,
+            fullName,
+            passwordHash,
+            passwordSalt,
+            createdAt,
+        };
+
         await this._userRepository.save(user);
         return true;
     }

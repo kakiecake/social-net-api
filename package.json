@@ -17,6 +17,7 @@
     "@types/jest": "^26.0.18",
     "@types/jsonwebtoken": "^8.5.0",
     "@types/sqlite3": "^3.1.6",
+    "class-transformer": "^0.3.1",
     "class-validator": "^0.12.2",
     "crypto-js": "^4.0.0",
     "express": "^4.17.1",
@@ -41,7 +42,8 @@
     "build": "tsc",
     "start": "ts-node src/index.ts",
     "start:compiled": "node build/index.js",
-    "test": "jest test"
+    "test": "jest test",
+    "debug": "node --inspect -r ts-node/register src/index.ts"
   },
   "jest": {
     "moduleFileExtensions": [

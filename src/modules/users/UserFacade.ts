@@ -1,9 +1,13 @@
 import { UserService } from './UserService';
 import { UserTag } from './UserEntity';
 import { UserView } from './UserView';
+import { Inject, forwardRef } from '@nestjs/common';
 
 export class UserFacade {
-    constructor(private readonly _userService: UserService) {}
+    constructor(
+        @Inject(forwardRef(() => UserService))
+        private readonly _userService: UserService
+    ) {}
 
     registerUser(
         tag: UserTag,
