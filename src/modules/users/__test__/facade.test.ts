@@ -1,5 +1,4 @@
 import { UserService } from '../UserService';
-import { UserFactory } from '../UserFactory';
 import { SHA256HashingProvider } from '../../../implementations/SHA256HashingProvider';
 import { InMemoryUserRepository } from '../../../implementations/InMemoryUserRepository';
 import { UserFacade } from '../UserFacade';
@@ -10,13 +9,8 @@ describe('Users module API tests', () => {
     let facade: UserFacade;
     beforeEach(() => {
         const hashingProvider = new SHA256HashingProvider();
-        const factory = new UserFactory(hashingProvider);
         const repository = new InMemoryUserRepository();
-        const userService = new UserService(
-            factory,
-            repository,
-            hashingProvider
-        );
+        const userService = new UserService(repository, hashingProvider);
         facade = new UserFacade(userService);
     });
 

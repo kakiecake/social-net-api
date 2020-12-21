@@ -1,5 +1,5 @@
 import { UserEntity, UserTag } from './UserEntity';
-import { UserFactory, IHashingProvider } from './UserFactory';
+import { IHashingProvider } from './IHashingProvider';
 import { UserView } from './UserView';
 import { IUserRepository } from './IUserRepository';
 
@@ -8,7 +8,6 @@ export type UserNotFoundError = Error;
 
 export class UserService {
     constructor(
-        private readonly _userFactory: UserFactory,
         private readonly _userRepository: IUserRepository,
         private readonly _hashingProvider: IHashingProvider
     ) {}
@@ -20,9 +19,20 @@ export class UserService {
     ): Promise<UserView | UserExistsError> {
         if ((await this._userRepository.findOne(tag)) !== null)
             return new Error();
-        const user = this._userFactory.createNewUser(fullName, tag, password);
-        await this._userRepository.save(user);
-        return this._userFactory.convertUserToDTO(user);
+
+        const passwordSalt = this._hashingProvider.generateSalt();
+        const passwordHash = this._hashingProvider.hash(password, passwordSalt);
+        const createdAt = Date.now();
+
+        await this._userRepository.save({
+            tag,
+            fullName,
+            passwordHash,
+            passwordSalt,
+            createdAt,
+        });
+
+        return { tag, fullName, createdAt };
     }
 
     private _checkUserPassword(user: UserEntity, password: string): boolean {
@@ -35,7 +45,11 @@ export class UserService {
     async loginUser(tag: UserTag, password: string): Promise<UserView | null> {
         const user = await this._userRepository.findOne(tag);
         if (user && this._checkUserPassword(user, password)) {
-            return this._userFactory.convertUserToDTO(user);
+            return {
+                tag: user.tag,
+                fullName: user.fullName,
+                createdAt: user.createdAt,
+            };
         } else {
             return null;
         }

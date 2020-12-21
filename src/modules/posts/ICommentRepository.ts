@@ -1,6 +1,8 @@
 import { CommentId, CommentEntity } from './CommentEntity';
 import { PossiblyUnsaved } from '../../utils';
 
+export const CommentRepositorySymbol = Symbol('CommentRepository');
+
 export interface ICommentRepository {
     findOne(id: CommentId): Promise<CommentEntity | null>;
     getCommentsForPost(postId: number): Promise<Array<CommentEntity>>;

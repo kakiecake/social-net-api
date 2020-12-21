@@ -1,3 +1,5 @@
+export const SubscriptionRepositorySymbol = Symbol('SubscriptionRepository');
+
 export interface ISubscriptionRepository {
     addSubcription(userTag: string, subscribeToTag: string): Promise<boolean>;
     deleteSubctiption(
