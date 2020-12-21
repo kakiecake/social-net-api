@@ -17,7 +17,6 @@ import { PostView } from '../modules/posts/PostView';
 import { PostDetailView } from '../modules/posts/PostDetailView';
 import { HttpResponseInterceptor } from './HTTPResponseInterceptor';
 import { NotAllowedError, PostNotFoundError } from '../modules/posts/errors';
-import { PostIdParams } from './dto/PostIdParams';
 import { UserTagParams } from './dto/UserTagParams';
 import { CreatePostDTO } from './dto/CreatePostDTO';
 import { EditPostDTO } from './dto/EditPostDTO';
@@ -31,9 +30,9 @@ export class PostController {
 
     @Get('/:postId')
     public async getPostWithComments(
-        @Param() params: PostIdParams
+        @Param('postId') postId: number
     ): Promise<PostDetailView | NotFoundException> {
-        const post = await this._postFacade.getPostWithComments(params.postId);
+        const post = await this._postFacade.getPostWithComments(postId);
         if (!post) return new NotFoundException('Post not found');
         else return post;
     }
@@ -55,13 +54,14 @@ export class PostController {
     }
 
     @UseGuards(AuthGuard)
-    @Put('/')
+    @Put('/:postId')
     public async editPost(
+        @Param('postId') postId: number,
         @Body() body: EditPostDTO,
         @User() userTag: string
     ): Promise<ForbiddenException | NotFoundException | void> {
         const post = await this._postFacade.editPost(
-            body.id,
+            postId,
             body.title,
             body.text,
             userTag
@@ -74,32 +74,32 @@ export class PostController {
     @UseGuards(AuthGuard)
     @Delete('/:postId')
     public async deletePost(
-        @Param() params: PostIdParams,
+        @Param('postId') postId: number,
         @User() userTag: string
     ): Promise<ForbiddenException | void> {
-        const err = await this._postFacade.deletePost(params.postId, userTag);
+        const err = await this._postFacade.deletePost(postId, userTag);
         if (err) return new ForbiddenException();
     }
 
     @UseGuards(AuthGuard)
     @Post('/:postId/like')
     public async likePost(
-        @Param() params: PostIdParams,
+        @Param('postId') postId: number,
         @User() user: string
     ): Promise<number> {
-        return this._postFacade.likePost(params.postId, user);
+        return this._postFacade.likePost(postId, user);
     }
 
     @UseGuards(AuthGuard)
     @Post('/:postId/comment')
     public async commentPost(
         @Body() body: CreateCommentDTO,
-        @Param() params: PostIdParams,
+        @Param('postId') postId: number,
         @User() userTag: string
     ): Promise<CommentView | NotFoundException> {
         const comment = await this._postFacade.leaveComment(
             body.text,
-            params.postId,
+            postId,
             userTag
         );
         if (comment instanceof PostNotFoundError)

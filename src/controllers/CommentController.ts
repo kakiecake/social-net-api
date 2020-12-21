@@ -14,7 +14,6 @@ import { User, AuthGuard } from './AuthGuard';
 import { NotAllowedError, CommentNotFoundError } from '../modules/posts/errors';
 import { HttpResponseInterceptor } from './HTTPResponseInterceptor';
 import { PostFacade } from '../modules/posts/PostFacade';
-import { CommentIdParams } from './dto/CommentIdParams';
 import { EditCommentDTO } from './dto/EditCommentDTO';
 
 @UseInterceptors(HttpResponseInterceptor)
@@ -25,28 +24,22 @@ export class CommentController {
     @UseGuards(AuthGuard)
     @Delete('/:commentId')
     public async deleteComment(
-        @Param() params: CommentIdParams,
+        @Param('commentId') commentId: number,
         @User() userTag: string
     ): Promise<ForbiddenException | void> {
-        const err = await this._postFacade.deleteComment(
-            params.commentId,
-            userTag
-        );
+        const err = await this._postFacade.deleteComment(commentId, userTag);
         if (err) return new ForbiddenException();
     }
 
     @UseGuards(AuthGuard)
     @Put('/:commentId')
     public async editComment(
-        @Param('commentId') params: CommentIdParams,
+        @Param('commentId') commentId: number,
         @Body() body: EditCommentDTO,
         @User() userTag: string
     ): Promise<ForbiddenException | NotFoundException | void> {
-        const err = this._postFacade.editComment(
-            body.text,
-            params.commentId,
-            userTag
-        );
+        console.log(commentId, typeof commentId);
+        const err = this._postFacade.editComment(body.text, commentId, userTag);
         if (err instanceof NotAllowedError) new ForbiddenException();
         else if (err instanceof CommentNotFoundError)
             return new NotFoundException('Comment not found');
@@ -55,9 +48,9 @@ export class CommentController {
     @UseGuards(AuthGuard)
     @Post('/:commentId/like')
     public async likeComment(
-        @Param('commentId') params: CommentIdParams,
+        @Param('commentId') commentId: number,
         @User() userTag: string
     ): Promise<number> {
-        return this._postFacade.likeComment(params.commentId, userTag);
+        return this._postFacade.likeComment(commentId, userTag);
     }
 }
