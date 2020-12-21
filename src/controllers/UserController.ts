@@ -6,16 +6,20 @@ import {
     Param,
     Get,
     UseGuards,
+    BadRequestException,
+    NotFoundException,
 } from '@nestjs/common';
 import { UserFacade } from '../modules/users/UserFacade';
-import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
+import { HttpResponseInterceptor } from './HTTPResponseInterceptor';
 import { AuthHandler } from './AuthHandler';
 import { SubscriptionFacade } from '../modules/subscriptions/SubscriptionFacade';
 import { User, AuthGuard } from './AuthGuard';
+import { RegisterUserDTO } from './dto/RegisterUserDTO';
+import { UserTagParams } from './dto/UserTagParams';
+import { LoginUserDTO } from './dto/LoginUserDTO';
+import { UserView } from '../modules/users/UserView';
 
-const isUserTag = (x: string) => x.startsWith('@') && x.length < 16;
-
-@UseInterceptors(HTTPResponseInterceptor)
+@UseInterceptors(HttpResponseInterceptor)
 @Controller('/users')
 export class UserController {
     constructor(
@@ -24,72 +28,79 @@ export class UserController {
         private readonly _subscriptionFacade: SubscriptionFacade
     ) {}
 
+    @Get('/:userTag')
+    public async getUserInfo(
+        @Param() params: UserTagParams
+    ): Promise<UserView | NotFoundException> {
+        const user = await this._userFacade.getUserInfo(params.userTag);
+        if (user === null) return new NotFoundException('User not found');
+        else return user;
+    }
+
     @Post('/register')
     public async register(
-        @Body('tag') tag: string,
-        @Body('fullName') fullName: string,
-        @Body('password') password: string
-    ) {
-        if (!isUserTag(tag)) return [400, 'Invalid user tag'];
-        const user = await this._userFacade.registerUser(
-            tag,
-            fullName,
-            password
+        @Body() body: RegisterUserDTO
+    ): Promise<BadRequestException | void> {
+        const success = await this._userFacade.registerUser(
+            body.tag,
+            body.fullName,
+            body.password
         );
-        if (user instanceof Error) return [400, 'Tag is occupied'];
-        return [200, user];
+        if (!success) return new BadRequestException('Tag is occupied');
     }
 
     @Post('/login')
     public async login(
-        @Body('tag') tag: string,
-        @Body('password') password: string
-    ) {
-        const user = await this._userFacade.loginUser(tag, password);
-        if (user === null) return [404, 'User not found'];
-        const token = this._authHandler.createSessionToken(user.tag);
-        return [200, token];
+        @Body() body: LoginUserDTO
+    ): Promise<string | NotFoundException> {
+        const user = await this._userFacade.loginUser(body.tag, body.password);
+        if (user === null)
+            return new NotFoundException('Invalid login/password combination');
+        const token = this._authHandler.createSessionToken(body.tag);
+        return token;
     }
 
     @Get('/:userTag/subscribers')
-    public async getSubscribers(@Param('userTag') userTag: string) {
-        const subs = await this._subscriptionFacade.getSubscribers(userTag);
-        return [200, subs];
+    public async getSubscribers(
+        @Param() params: UserTagParams
+    ): Promise<string[]> {
+        return this._subscriptionFacade.getSubscribers(params.userTag);
     }
 
     @Get('/:userTag/subscriptions')
-    public async getSubscriptions(@Param('userTag') userTag: string) {
-        const subs = await this._subscriptionFacade.getSubscribtions(userTag);
-        return [200, subs];
+    public async getSubscriptions(
+        @Param() params: UserTagParams
+    ): Promise<string[]> {
+        return this._subscriptionFacade.getSubscribtions(params.userTag);
     }
 
     @UseGuards(AuthGuard)
-    @Post('/:subscribeToTag/subscribe')
+    @Post('/:userTag/subscribe')
     public async subscribe(
-        @Param('subscribeToTag') subscribeToTag: string,
+        @Param() params: UserTagParams,
         @User() userTag: string
-    ) {
-        if (userTag === subscribeToTag) return [400, 'User tags are equal'];
+    ): Promise<BadRequestException | void> {
+        if (userTag === params.userTag)
+            new BadRequestException('User tags are equal');
         const success = await this._subscriptionFacade.subscribe(
             userTag,
-            subscribeToTag
+            params.userTag
         );
-        if (!success) return [400, 'Already subscribed'];
-        return [200, null];
+        if (!success) return new BadRequestException('Already subscribed');
     }
 
     @UseGuards(AuthGuard)
-    @Post('/:subscribeToTag/subscribe')
+    @Post('/:userTag/subscribe')
     public async unsubscribe(
-        @Param('subscribeToTag') subscribeToTag: string,
+        @Param('subscribeToTag') params: UserTagParams,
         @User() userTag: string
-    ) {
-        if (userTag === subscribeToTag) return [400, 'User tags are equal'];
+    ): Promise<BadRequestException | void> {
+        if (userTag === params.userTag)
+            new BadRequestException('User tags are equal');
         const success = await this._subscriptionFacade.unsubscribe(
             userTag,
-            subscribeToTag
+            params.userTag
         );
-        if (!success) return [400, 'Already unsubscribed'];
-        return [200, null];
+        if (!success) return new BadRequestException('Already unsubscribed');
     }
 }

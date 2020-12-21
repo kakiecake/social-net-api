@@ -6,96 +6,104 @@ import {
     Body,
     Delete,
     Param,
-    Patch,
     UseInterceptors,
+    Put,
+    ForbiddenException,
+    NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard, User } from './AuthGuard';
 import { PostFacade } from '../modules/posts/PostFacade';
 import { PostView } from '../modules/posts/PostView';
 import { PostDetailView } from '../modules/posts/PostDetailView';
-import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
-import { ControllerResponse } from './ApiResponse';
+import { HttpResponseInterceptor } from './HTTPResponseInterceptor';
 import { NotAllowedError, PostNotFoundError } from '../modules/posts/errors';
+import { UserTagParams } from './dto/UserTagParams';
+import { CreatePostDTO } from './dto/CreatePostDTO';
+import { EditPostDTO } from './dto/EditPostDTO';
+import { CreateCommentDTO } from './dto/CreateCommentDTO';
+import { CommentView } from '../modules/posts/CommentView';
 
-@UseInterceptors(HTTPResponseInterceptor)
+@UseInterceptors(HttpResponseInterceptor)
 @Controller('/posts')
 export class PostController {
     constructor(private readonly _postFacade: PostFacade) {}
 
-    @Get('/detail/:id')
+    @Get('/:postId')
     public async getPostWithComments(
-        @Param('id') idParam: string
-    ): Promise<ControllerResponse<PostDetailView>> {
-        let id = Number(idParam);
-        if (isNaN(id)) return [400, 'Invalid ID parameter'];
-
-        const post = await this._postFacade.getPostWithComments(id);
-        if (!post) return [404, 'Post not found'];
-        else return [200, post];
+        @Param('postId') postId: number
+    ): Promise<PostDetailView | NotFoundException> {
+        const post = await this._postFacade.getPostWithComments(postId);
+        if (!post) return new NotFoundException('Post not found');
+        else return post;
     }
 
-    @Get('/:userTag')
+    @Get('/byUser/:userTag')
     public async getPostsByUser(
-        @Param('userTag') userTag: string
-    ): Promise<ControllerResponse<PostView[]>> {
-        const isValidUserTag = (x: string) =>
-            x.startsWith('@') && x.length < 16;
-        if (!isValidUserTag(userTag)) return [400, 'Invalid user tag'];
-        const posts = await this._postFacade.getPostsByUser(userTag);
-        return [200, posts];
+        @Param() params: UserTagParams
+    ): Promise<PostView[]> {
+        return this._postFacade.getPostsByUser(params.userTag);
     }
 
     @UseGuards(AuthGuard)
     @Post('/')
     public async createPost(
-        @Body('title') title: string,
-        @Body('text') text: string,
-        @User() user: string
-    ): Promise<ControllerResponse<PostView>> {
-        const post = await this._postFacade.createPost(title, text, user);
-        return [200, post];
+        @Body() body: CreatePostDTO,
+        @User() userTag: string
+    ): Promise<PostView> {
+        return this._postFacade.createPost(body.title, body.text, userTag);
     }
 
     @UseGuards(AuthGuard)
-    @Patch('/')
+    @Put('/:postId')
     public async editPost(
-        @User() user: string,
-        @Body('id') idParam: string,
-        @Body('title') title?: string,
-        @Body('text') text?: string
-    ) {
-        const id = Number(idParam);
-        if (isNaN(id)) return [400, 'Invalid ID parameter'];
-        if (!title && !text) return [400, 'Title or text must be provided'];
-
-        const post = await this._postFacade.editPost(id, title, text, user);
-        if (post instanceof NotAllowedError) return [403, 'Forbidden'];
-        if (post instanceof PostNotFoundError) return [404, 'Post not found'];
-        return [200, null];
+        @Param('postId') postId: number,
+        @Body() body: EditPostDTO,
+        @User() userTag: string
+    ): Promise<ForbiddenException | NotFoundException | void> {
+        const post = await this._postFacade.editPost(
+            postId,
+            body.title,
+            body.text,
+            userTag
+        );
+        if (post instanceof NotAllowedError) return new ForbiddenException();
+        if (post instanceof PostNotFoundError)
+            return new NotFoundException('Post not found');
     }
 
     @UseGuards(AuthGuard)
-    @Delete('/')
+    @Delete('/:postId')
     public async deletePost(
-        @Body('postId') idParam: string,
-        @User() user: string
-    ) {
-        let id = Number(idParam);
-        if (isNaN(id)) return [400, 'Invalid ID parameter'];
-        const err = await this._postFacade.deletePost(id, user);
-        if (err) return [403, 'Forbidden'];
-        else return [200, null];
+        @Param('postId') postId: number,
+        @User() userTag: string
+    ): Promise<ForbiddenException | void> {
+        const err = await this._postFacade.deletePost(postId, userTag);
+        if (err) return new ForbiddenException();
     }
 
     @UseGuards(AuthGuard)
-    @Post('/like')
+    @Post('/:postId/like')
     public async likePost(
-        @Body('postId') postIdParam: string,
+        @Param('postId') postId: number,
         @User() user: string
-    ) {
-        const postId = Number(postIdParam);
-        if (isNaN(postId)) return [400, 'Invalid postId parameter'];
-        const likes = await this._postFacade.likePost(postId, user);
-        return [200, likes];
+    ): Promise<number> {
+        return this._postFacade.likePost(postId, user);
+    }
+
+    @UseGuards(AuthGuard)
+    @Post('/:postId/comment')
+    public async commentPost(
+        @Body() body: CreateCommentDTO,
+        @Param('postId') postId: number,
+        @User() userTag: string
+    ): Promise<CommentView | NotFoundException> {
+        const comment = await this._postFacade.leaveComment(
+            body.text,
+            postId,
+            userTag
+        );
+        if (comment instanceof PostNotFoundError)
+            return new NotFoundException('Post not found');
+        else return comment;
     }
 }

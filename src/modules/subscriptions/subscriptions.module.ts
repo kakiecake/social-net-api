@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SubscriptionFacade } from './SubscriptionFacade';
 import { UserModule } from '../users/user.module';
 import { SubscriptionService } from './SubscriptionService';
@@ -8,13 +8,9 @@ import { ImplementationsModule } from '../../implementations/implementations.mod
 
 @Module({
     exports: [SubscriptionFacade],
-    imports: [ImplementationsModule, UserModule],
+    imports: [ImplementationsModule, forwardRef(() => UserModule)],
     providers: [
-        {
-            provide: SubscriptionFacade,
-            inject: [SubscriptionService],
-            useFactory: service => new SubscriptionFacade(service),
-        },
+        SubscriptionFacade,
         {
             provide: SubscriptionService,
             inject: [SubscriptionRepositorySymbol, UserFacade],

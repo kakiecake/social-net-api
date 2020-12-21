@@ -22,6 +22,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
                     ? (errorResponse as any).error || 'Error'
                     : errorResponse;
         } else {
+            console.error(exception.message);
             status = 500;
             errorMessage = 'Internal server error';
         }

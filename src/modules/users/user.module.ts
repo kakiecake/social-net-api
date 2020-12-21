@@ -1,24 +1,26 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { UserFacade } from './UserFacade';
 import { UserService } from './UserService';
 import { ImplementationsModule } from '../../implementations/implementations.module';
 import { HashingProviderSymbol } from './IHashingProvider';
 import { UserRepositorySymbol } from './IUserRepository';
+import { SubscriptionFacade } from '../subscriptions/SubscriptionFacade';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
     exports: [UserFacade],
-    imports: [ImplementationsModule],
+    imports: [ImplementationsModule, forwardRef(() => SubscriptionsModule)],
     providers: [
-        {
-            provide: UserFacade,
-            inject: [UserService],
-            useFactory: service => new UserFacade(service),
-        },
+        UserFacade,
         {
             provide: UserService,
-            inject: [UserRepositorySymbol, HashingProviderSymbol],
-            useFactory: (repository, hashingProvider) =>
-                new UserService(repository, hashingProvider),
+            inject: [
+                UserRepositorySymbol,
+                HashingProviderSymbol,
+                SubscriptionFacade,
+            ],
+            useFactory: (repository, hashingProvider, subscriptions) =>
+                new UserService(repository, hashingProvider, subscriptions),
         },
     ],
 })

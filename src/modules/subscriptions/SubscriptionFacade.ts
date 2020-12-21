@@ -1,7 +1,11 @@
 import { SubscriptionService } from './SubscriptionService';
+import { Inject, forwardRef } from '@nestjs/common';
 
 export class SubscriptionFacade {
-    constructor(private readonly _subscriptionService: SubscriptionService) {}
+    constructor(
+        @Inject(forwardRef(() => SubscriptionService))
+        private readonly _subscriptionService: SubscriptionService
+    ) {}
 
     subscribe(userTag: string, subscribeToTag: string): Promise<boolean> {
         return this._subscriptionService.subscribe(userTag, subscribeToTag);
