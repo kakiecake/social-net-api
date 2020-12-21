@@ -7,15 +7,17 @@ import {
     UseInterceptors,
     Param,
     Put,
+    ForbiddenException,
+    NotFoundException,
 } from '@nestjs/common';
 import { User, AuthGuard } from './AuthGuard';
 import { NotAllowedError, CommentNotFoundError } from '../modules/posts/errors';
-import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
+import { HttpResponseInterceptor } from './HTTPResponseInterceptor';
 import { PostFacade } from '../modules/posts/PostFacade';
 import { CommentIdParams } from './dto/CommentIdParams';
 import { EditCommentDTO } from './dto/EditCommentDTO';
 
-@UseInterceptors(HTTPResponseInterceptor)
+@UseInterceptors(HttpResponseInterceptor)
 @Controller('/comments')
 export class CommentController {
     constructor(private readonly _postFacade: PostFacade) {}
@@ -25,13 +27,12 @@ export class CommentController {
     public async deleteComment(
         @Param() params: CommentIdParams,
         @User() userTag: string
-    ) {
+    ): Promise<ForbiddenException | void> {
         const err = await this._postFacade.deleteComment(
             params.commentId,
             userTag
         );
-        if (err == null) return [200, null];
-        else return [403, 'Forbidden'];
+        if (err) return new ForbiddenException();
     }
 
     @UseGuards(AuthGuard)
@@ -40,16 +41,15 @@ export class CommentController {
         @Param('commentId') params: CommentIdParams,
         @Body() body: EditCommentDTO,
         @User() userTag: string
-    ) {
+    ): Promise<ForbiddenException | NotFoundException | void> {
         const err = this._postFacade.editComment(
             body.text,
             params.commentId,
             userTag
         );
-        if (err instanceof NotAllowedError) return [403, 'Forbidden'];
+        if (err instanceof NotAllowedError) new ForbiddenException();
         else if (err instanceof CommentNotFoundError)
-            return [404, 'Comment not found'];
-        else return [200, null];
+            return new NotFoundException('Comment not found');
     }
 
     @UseGuards(AuthGuard)
@@ -57,11 +57,7 @@ export class CommentController {
     public async likeComment(
         @Param('commentId') params: CommentIdParams,
         @User() userTag: string
-    ) {
-        const likes = await this._postFacade.likeComment(
-            params.commentId,
-            userTag
-        );
-        return [200, likes];
+    ): Promise<number> {
+        return this._postFacade.likeComment(params.commentId, userTag);
     }
 }

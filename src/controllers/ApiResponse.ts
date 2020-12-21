@@ -1,11 +1,5 @@
-export type ApiResponse<T = null> = {
+export type ApiResponse<T = unknown> = {
     success: boolean;
     error?: string;
-    data: T;
+    data: T | null;
 };
-
-// Tuple of [statusCode, data | err]
-export type ControllerResponse<
-    T extends object | null = null,
-    E extends string | Error = string
-> = readonly [number, T | E];

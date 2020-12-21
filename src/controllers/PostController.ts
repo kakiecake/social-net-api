@@ -8,21 +8,23 @@ import {
     Param,
     UseInterceptors,
     Put,
+    ForbiddenException,
+    NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard, User } from './AuthGuard';
 import { PostFacade } from '../modules/posts/PostFacade';
 import { PostView } from '../modules/posts/PostView';
 import { PostDetailView } from '../modules/posts/PostDetailView';
-import { HTTPResponseInterceptor } from './HTTPResponseInterceptor';
-import { ControllerResponse } from './ApiResponse';
+import { HttpResponseInterceptor } from './HTTPResponseInterceptor';
 import { NotAllowedError, PostNotFoundError } from '../modules/posts/errors';
 import { PostIdParams } from './dto/PostIdParams';
 import { UserTagParams } from './dto/UserTagParams';
 import { CreatePostDTO } from './dto/CreatePostDTO';
 import { EditPostDTO } from './dto/EditPostDTO';
 import { CreateCommentDTO } from './dto/CreateCommentDTO';
+import { CommentView } from '../modules/posts/CommentView';
 
-@UseInterceptors(HTTPResponseInterceptor)
+@UseInterceptors(HttpResponseInterceptor)
 @Controller('/posts')
 export class PostController {
     constructor(private readonly _postFacade: PostFacade) {}
@@ -30,18 +32,17 @@ export class PostController {
     @Get('/:postId')
     public async getPostWithComments(
         @Param() params: PostIdParams
-    ): Promise<ControllerResponse<PostDetailView>> {
+    ): Promise<PostDetailView | NotFoundException> {
         const post = await this._postFacade.getPostWithComments(params.postId);
-        if (!post) return [404, 'Post not found'];
-        else return [200, post];
+        if (!post) return new NotFoundException('Post not found');
+        else return post;
     }
 
     @Get('/byUser/:userTag')
     public async getPostsByUser(
         @Param() params: UserTagParams
-    ): Promise<ControllerResponse<PostView[]>> {
-        const posts = await this._postFacade.getPostsByUser(params.userTag);
-        return [200, posts];
+    ): Promise<PostView[]> {
+        return this._postFacade.getPostsByUser(params.userTag);
     }
 
     @UseGuards(AuthGuard)
@@ -49,27 +50,25 @@ export class PostController {
     public async createPost(
         @Body() body: CreatePostDTO,
         @User() userTag: string
-    ): Promise<ControllerResponse<PostView>> {
-        const post = await this._postFacade.createPost(
-            body.title,
-            body.text,
-            userTag
-        );
-        return [200, post];
+    ): Promise<PostView> {
+        return this._postFacade.createPost(body.title, body.text, userTag);
     }
 
     @UseGuards(AuthGuard)
     @Put('/')
-    public async editPost(@Body() body: EditPostDTO, @User() userTag: string) {
+    public async editPost(
+        @Body() body: EditPostDTO,
+        @User() userTag: string
+    ): Promise<ForbiddenException | NotFoundException | void> {
         const post = await this._postFacade.editPost(
             body.id,
             body.title,
             body.text,
             userTag
         );
-        if (post instanceof NotAllowedError) return [403, 'Forbidden'];
-        if (post instanceof PostNotFoundError) return [404, 'Post not found'];
-        return [200, null];
+        if (post instanceof NotAllowedError) return new ForbiddenException();
+        if (post instanceof PostNotFoundError)
+            return new NotFoundException('Post not found');
     }
 
     @UseGuards(AuthGuard)
@@ -77,17 +76,18 @@ export class PostController {
     public async deletePost(
         @Param() params: PostIdParams,
         @User() userTag: string
-    ) {
+    ): Promise<ForbiddenException | void> {
         const err = await this._postFacade.deletePost(params.postId, userTag);
-        if (err) return [403, 'Forbidden'];
-        else return [200, null];
+        if (err) return new ForbiddenException();
     }
 
     @UseGuards(AuthGuard)
     @Post('/:postId/like')
-    public async likePost(@Param() params: PostIdParams, @User() user: string) {
-        const likes = await this._postFacade.likePost(params.postId, user);
-        return [200, likes];
+    public async likePost(
+        @Param() params: PostIdParams,
+        @User() user: string
+    ): Promise<number> {
+        return this._postFacade.likePost(params.postId, user);
     }
 
     @UseGuards(AuthGuard)
@@ -96,14 +96,14 @@ export class PostController {
         @Body() body: CreateCommentDTO,
         @Param() params: PostIdParams,
         @User() userTag: string
-    ) {
+    ): Promise<CommentView | NotFoundException> {
         const comment = await this._postFacade.leaveComment(
             body.text,
             params.postId,
             userTag
         );
         if (comment instanceof PostNotFoundError)
-            return [404, 'Post not found'];
-        else return [200, comment];
+            return new NotFoundException('Post not found');
+        else return comment;
     }
 }

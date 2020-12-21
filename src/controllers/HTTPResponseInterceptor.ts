@@ -3,28 +3,37 @@ import {
     ExecutionContext,
     CallHandler,
     Injectable,
+    HttpException,
 } from '@nestjs/common';
-import { ControllerResponse } from './ApiResponse';
+import { ApiResponse } from './ApiResponse';
 import { Response } from 'express';
 import { map } from 'rxjs/operators';
 
 @Injectable()
-export class HTTPResponseInterceptor implements NestInterceptor {
-    intercept<T extends object | null, E extends string | Error>(
+export class HttpResponseInterceptor implements NestInterceptor {
+    intercept<T extends object, E extends HttpException>(
         context: ExecutionContext,
-        next: CallHandler<ControllerResponse<T, E>>
+        next: CallHandler<T | E>
     ) {
-        const handler = ([statusCode, data]: ControllerResponse<T, E>) => {
-            const isSuccess = (statusCode: number): boolean =>
-                statusCode >= 200 && statusCode < 300;
+        const handler = (data: T | E) => {
+            let body: ApiResponse<T>, status: number;
+            if (data instanceof HttpException) {
+                body = {
+                    success: false,
+                    error: data.message,
+                    data: null,
+                };
+                status = data.getStatus();
+            } else {
+                body = {
+                    success: true,
+                    data: data,
+                };
+                status = 200;
+            }
 
             const res: Response = context.switchToHttp().getResponse();
-
-            const success = isSuccess(statusCode);
-            let body = success
-                ? { success, data }
-                : { success, error: data, data: null };
-            res.status(statusCode);
+            res.status(status);
             return body;
         };
 

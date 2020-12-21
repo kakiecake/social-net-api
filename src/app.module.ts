@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { HTTPResponseInterceptor } from './controllers/HTTPResponseInterceptor';
+import { HttpResponseInterceptor } from './controllers/HTTPResponseInterceptor';
 import { CommentController } from './controllers/CommentController';
 import { PostController } from './controllers/PostController';
 import { UserController } from './controllers/UserController';
@@ -22,7 +22,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
     ],
     controllers: [PostController, UserController, CommentController],
     providers: [
-        HTTPResponseInterceptor,
+        HttpResponseInterceptor,
         {
             provide: AuthGuard,
             inject: [AuthHandler],
