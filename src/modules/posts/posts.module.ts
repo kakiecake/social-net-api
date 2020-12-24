@@ -35,6 +35,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
                 CommentRepositorySymbol,
                 CommentFactory,
                 LikeRepositorySymbol,
+                SubscriptionFacade,
             ],
             useFactory: (
                 postRepo: IPostRepository,

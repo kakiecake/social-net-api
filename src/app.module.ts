@@ -10,6 +10,7 @@ import config from './config';
 import { UserModule } from './modules/users/user.module';
 import { PostModule } from './modules/posts/posts.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { NewsController } from './controllers/NewsController';
 
 @Module({
     imports: [
@@ -20,7 +21,12 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
         PostModule,
         SubscriptionsModule,
     ],
-    controllers: [PostController, UserController, CommentController],
+    controllers: [
+        PostController,
+        UserController,
+        CommentController,
+        NewsController,
+    ],
     providers: [
         HttpResponseInterceptor,
         {
