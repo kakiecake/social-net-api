@@ -8,7 +8,10 @@ import { ImplementationsModule } from '../../implementations/implementations.mod
 
 @Module({
     exports: [SubscriptionFacade],
-    imports: [ImplementationsModule, forwardRef(() => UserModule)],
+    imports: [
+        forwardRef(() => ImplementationsModule),
+        forwardRef(() => UserModule),
+    ],
     providers: [
         SubscriptionFacade,
         {

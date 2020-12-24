@@ -13,6 +13,7 @@ import {
     NotAllowedError,
 } from './errors';
 import { ILikeRepository } from './ILikeRepository';
+import { SubscriptionFacade } from '../subscriptions/SubscriptionFacade';
 
 export class PostService {
     constructor(
@@ -20,7 +21,8 @@ export class PostService {
         private readonly _postFactory: PostFactory,
         private readonly _commentRepository: ICommentRepository,
         private readonly _commentFactory: CommentFactory,
-        private readonly _likeRepository: ILikeRepository
+        private readonly _likeRepository: ILikeRepository,
+        private readonly _subscriptionFacade: SubscriptionFacade
     ) {}
 
     public async getPostById(postId: PostId): Promise<PostView | null> {
@@ -28,6 +30,22 @@ export class PostService {
         if (post === null) return null;
         const likes = await this._likeRepository.getLikesForPost(postId);
         return { ...post, likes };
+    }
+
+    public async getNewsFeedForUser(userTag: string): Promise<PostView[]> {
+        const subscriptions = await this._subscriptionFacade.getSubscribtions(
+            userTag
+        );
+
+        const posts = await this._postRepository.findPostsByUsers(
+            subscriptions
+        );
+
+        const likes = await Promise.all(
+            posts.map(post => this._likeRepository.getLikesForPost(post.id))
+        );
+
+        return posts.map((post, index) => ({ ...post, likes: likes[index] }));
     }
 
     public async getPostWithComments(

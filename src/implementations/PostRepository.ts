@@ -15,6 +15,25 @@ export class PostRepository implements IPostRepository {
         this._posts = _connection.getRepository(PostModel);
     }
 
+    public async findPostsByUsers(
+        authorTags: string[],
+        limit?: number
+    ): Promise<PostEntity[]> {
+        const posts = await this._posts
+            .createQueryBuilder('post')
+            .where('post.authorTag IN (:...authorTags)', { authorTags })
+            .limit(limit || 100)
+            .getMany();
+
+        return posts.map(post => ({
+            id: post.id,
+            title: post.title,
+            text: post.text,
+            authorTag: post.authorTag,
+            createdAt: post.createdAt,
+        }));
+    }
+
     public async getPostsByUser(userTag: string): Promise<PostEntity[]> {
         const posts = await this._posts.find({ authorTag: userTag });
         return posts.map(post =>

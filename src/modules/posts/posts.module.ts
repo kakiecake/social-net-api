@@ -10,14 +10,15 @@ import { ImplementationsModule } from '../../implementations/implementations.mod
 import { LikeRepositorySymbol } from './ILikeRepository';
 import { PostRepositorySymbol } from './IPostRepository';
 import { CommentRepositorySymbol } from './ICommentRepository';
-
-// export const PostRepositorySymbol = Symbol('PostRepository');
-// export const CommentRepositorySymbol = Symbol('CommentRepository');
-// export const LikeRepositorySymbol = Symbol('LikeRepository');
+import { SubscriptionFacade } from '../subscriptions/SubscriptionFacade';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
     exports: [PostFacade, PostFactory, CommentFactory],
-    imports: [forwardRef(() => ImplementationsModule)],
+    imports: [
+        forwardRef(() => ImplementationsModule),
+        forwardRef(() => SubscriptionsModule),
+    ],
     providers: [
         PostFactory,
         CommentFactory,
@@ -40,14 +41,16 @@ import { CommentRepositorySymbol } from './ICommentRepository';
                 postFactory: PostFactory,
                 commentRepo: ICommentRepository,
                 commentFactory: CommentFactory,
-                likeRepo: ILikeRepository
+                likeRepo: ILikeRepository,
+                subscriptions: SubscriptionFacade
             ) =>
                 new PostService(
                     postRepo,
                     postFactory,
                     commentRepo,
                     commentFactory,
-                    likeRepo
+                    likeRepo,
+                    subscriptions
                 ),
         },
     ],
