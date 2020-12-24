@@ -17,6 +17,8 @@ import { ILikeRepository } from '../ILikeRepository';
 
 import faker from 'faker';
 import { CommentView } from '../CommentView';
+import { SubscriptionFacade } from '../../subscriptions/SubscriptionFacade';
+import { mock, when, instance } from 'ts-mockito';
 
 describe('Post module api test', () => {
     let postRepository: IPostRepository;
@@ -26,8 +28,10 @@ describe('Post module api test', () => {
     let service: PostService;
     let facade: PostFacade;
     let likeRepository: ILikeRepository;
+    let subscriptionModuleMock: SubscriptionFacade;
 
     beforeEach(() => {
+        subscriptionModuleMock = mock(SubscriptionFacade);
         postRepository = new InMemoryPostRepository();
         commentRepository = new InMemoryCommentRepository();
         postFactory = new PostFactory();
@@ -38,7 +42,8 @@ describe('Post module api test', () => {
             postFactory,
             commentRepository,
             commentFactory,
-            likeRepository
+            likeRepository,
+            instance(subscriptionModuleMock)
         );
         facade = new PostFacade(service);
     });
@@ -330,6 +335,33 @@ describe('Post module api test', () => {
                 const likedComment = comments.find(x => x.id === comment.id);
 
                 expect(likedComment?.likes).toEqual(0);
+            });
+        });
+        describe('news feed', () => {
+            it('returns empty array for user with no subscrtiptions', async () => {
+                const userTag = '@' + faker.internet.userName();
+                when(
+                    subscriptionModuleMock.getSubscribtions(userTag)
+                ).thenResolve([]);
+
+                const newsFeed = await facade.getNewsFeedForUser(userTag);
+
+                expect(newsFeed).toHaveLength(0);
+            });
+
+            it('returns posts for subscriptions', async () => {
+                const text = faker.lorem.text();
+                const title = faker.lorem.sentence();
+                const userTag = '@' + faker.internet.userName();
+                const subscriberTag = '@' + faker.internet.userName();
+                when(
+                    subscriptionModuleMock.getSubscribtions(subscriberTag)
+                ).thenResolve([userTag]);
+
+                const post = await facade.createPost(title, text, userTag);
+                const newsFeed = await facade.getNewsFeedForUser(subscriberTag);
+
+                expect(newsFeed).toContainEqual(post);
             });
         });
     });

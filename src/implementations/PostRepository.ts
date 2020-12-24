@@ -23,6 +23,7 @@ export class PostRepository implements IPostRepository {
             .createQueryBuilder('post')
             .where('post.authorTag IN (:...authorTags)', { authorTags })
             .limit(limit || 100)
+            .orderBy('post.createdAt')
             .getMany();
 
         return posts.map(post => ({
