@@ -8,6 +8,16 @@ const isPostSaved = (post: PossiblyUnsaved<PostEntity>): post is PostEntity =>
 export class InMemoryPostRepository implements IPostRepository {
     private _posts: PostEntity[] = [];
 
+    public async findPostsByUsers(
+        authorTags: string[],
+        limit?: number
+    ): Promise<PostEntity[]> {
+        return this._posts
+            .filter(x => authorTags.includes(x.authorTag))
+            .sort(x => x.createdAt)
+            .slice(0, limit || 100);
+    }
+
     public async findOne(id: PostId): Promise<PostEntity | null> {
         return this._posts.find(post => post.id === id) || null;
     }

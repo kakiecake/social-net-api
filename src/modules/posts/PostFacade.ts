@@ -5,6 +5,10 @@ import { CommentId } from './CommentEntity';
 export class PostFacade {
     constructor(private readonly _postService: PostService) {}
 
+    getNewsFeedForUser(userTag: string) {
+        return this._postService.getNewsFeedForUser(userTag);
+    }
+
     getPostById(postId: PostId) {
         return this._postService.getPostById(postId);
     }

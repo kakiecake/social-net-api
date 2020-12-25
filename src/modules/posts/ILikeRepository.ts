@@ -1,3 +1,5 @@
+export const LikeRepositorySymbol = Symbol('LikeRepository');
+
 export interface ILikeRepository {
     likePost(postId: number, userTag: string): Promise<number>;
     likeComment(commentId: number, userTag: string): Promise<number>;
